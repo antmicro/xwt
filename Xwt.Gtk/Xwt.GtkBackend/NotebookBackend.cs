@@ -27,6 +27,7 @@
 using System;
 using Xwt.Backends;
 using Xwt.Engine;
+using System.Reflection;
 
 namespace Xwt.GtkBackend
 {
@@ -108,11 +109,29 @@ namespace Xwt.GtkBackend
 			}
 		}
 		
-		Gtk.Widget CreateLabel (NotebookTab tab)
+		Gtk.Widget CreateLabel(NotebookTab tab)
 		{
-			Gtk.Label label = new Gtk.Label (tab.Label);
-			label.Show ();
-			return label;
+			var vbox = new Gtk.HBox();
+
+			Gtk.Label label = new Gtk.Label(tab.Label);
+			label.Show();
+			vbox.PackStart(label);
+
+			if(!label.Text.StartsWith(char.ConvertFromUtf32(0x200B)))
+			{
+				var closeImage = new Gtk.Image(Assembly.GetExecutingAssembly(), "Xwt.GtkBackend.delete.png");
+				var button = new Gtk.ToolButton(closeImage, "");
+				vbox.PackEnd(button, false, false, 0);
+				button.Show();
+				closeImage.Show();
+				var nativeWidget = GetWidget((IWidgetBackend)WidgetRegistry.GetBackend(tab.Child));
+				button.Clicked += (object sender, EventArgs e) => 
+				{
+					Widget.Remove(nativeWidget);
+				};
+			}
+
+			return vbox;
 		}
 	}
 }
