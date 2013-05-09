@@ -26,7 +26,6 @@
 
 using System;
 using Xwt.Backends;
-using Xwt.Engine;
 using System.Reflection;
 
 namespace Xwt.GtkBackend
@@ -123,7 +122,7 @@ namespace Xwt.GtkBackend
 				vbox.PackEnd(button, false, false, 0);
 				button.Show();
 				closeImage.Show();
-				var nativeWidget = GetWidget((IWidgetBackend)WidgetRegistry.GetBackend(tab.Child));
+				var nativeWidget = GetWidget((IWidgetBackend)Toolkit.GetBackend(tab.Child));
 				button.Clicked += (object sender, EventArgs e) => 
 				{
 					Widget.Remove(nativeWidget);
