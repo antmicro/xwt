@@ -26,10 +26,11 @@
 
 using System;
 using Xwt.Backends;
-using Xwt.Engine;
+
 
 namespace Xwt
 {
+	[BackendType (typeof(IMenuBackend))]
 	public class Menu: XwtComponent
 	{
 		MenuItemCollection items;
@@ -49,12 +50,12 @@ namespace Xwt
 		
 		internal void InsertItem (int n, MenuItem item)
 		{
-			Backend.InsertItem (n, (IMenuItemBackend)WidgetRegistry.GetBackend (item));
+			Backend.InsertItem (n, (IMenuItemBackend)BackendHost.ToolkitEngine.GetSafeBackend (item));
 		}
 		
 		internal void RemoveItem (MenuItem item)
 		{
-			Backend.RemoveItem ((IMenuItemBackend)WidgetRegistry.GetBackend (item));
+			Backend.RemoveItem ((IMenuItemBackend)BackendHost.ToolkitEngine.GetSafeBackend (item));
 		}
 		
 		public void Popup ()
@@ -64,7 +65,7 @@ namespace Xwt
 		
 		public void Popup (Widget parentWidget, double x, double y)
 		{
-			Backend.Popup ((IWidgetBackend)WidgetRegistry.GetBackend (parentWidget), x, y);
+			Backend.Popup ((IWidgetBackend)BackendHost.ToolkitEngine.GetSafeBackend (parentWidget), x, y);
 		}
 		
 		/// <summary>

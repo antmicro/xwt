@@ -25,7 +25,7 @@
 // THE SOFTWARE.
 using System;
 using Xwt.Backends;
-using Xwt.Engine;
+
 
 namespace Xwt.GtkBackend
 {
@@ -63,7 +63,7 @@ namespace Xwt.GtkBackend
 		{
 			Gtk.TreePath path = model.GetPath (iter);
 			bool res = false;
-			Toolkit.Invoke (delegate {
+			ApplicationContext.InvokeUserCode (delegate {
 				res = EventSink.RowIsSeparator (path.Indices[0]);
 			});
 			return res;
@@ -89,7 +89,7 @@ namespace Xwt.GtkBackend
 
 		void HandleChanged (object sender, EventArgs e)
 		{
-			Toolkit.Invoke (delegate {
+			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnSelectionChanged ();
 			});
 		}
@@ -99,7 +99,7 @@ namespace Xwt.GtkBackend
 		{
 			Widget.Clear ();
 			foreach (var v in views)
-				CellUtil.CreateCellRenderer (this, null, v);
+				CellUtil.CreateCellRenderer (ApplicationContext, this, null, v, Widget.Model);
 		}
 
 		public void SetSource (IListDataSource source, IBackend sourceBackend)
@@ -126,16 +126,21 @@ namespace Xwt.GtkBackend
 		public void PackStart (object target, Gtk.CellRenderer cr, bool expand)
 		{
 			Widget.PackStart (cr, expand);
-		}
+		}	
 
 		public void PackEnd (object target, Gtk.CellRenderer cr, bool expand)
 		{
 			Widget.PackEnd (cr, expand);
 		}
-
+			
 		public void AddAttribute (object target, Gtk.CellRenderer cr, string field, int column)
 		{
 			Widget.AddAttribute (cr, field, column);
+		}
+		
+		public void SetCellDataFunc (object target, Gtk.CellRenderer cr, Gtk.CellLayoutDataFunc dataFunc)
+		{
+			Widget.SetCellDataFunc (cr, dataFunc);
 		}
 		#endregion
 	}

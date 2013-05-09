@@ -10,6 +10,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>MacTest</RootNamespace>
     <AssemblyName>MacTest</AssemblyName>
+    <SuppressXamMacMigration>True</SuppressXamMacMigration>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
@@ -24,6 +25,7 @@
     <CreatePackage>False</CreatePackage>
     <EnablePackageSigning>False</EnablePackageSigning>
     <IncludeMonoRuntime>False</IncludeMonoRuntime>
+    <UseSGen>False</UseSGen>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
@@ -36,14 +38,12 @@
     <CreatePackage>False</CreatePackage>
     <EnablePackageSigning>False</EnablePackageSigning>
     <IncludeMonoRuntime>False</IncludeMonoRuntime>
+    <UseSGen>False</UseSGen>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="MonoMac, Version=0.0.0.0, Culture=neutral">
-      <Private>False</Private>
-      <Package>monodevelop-core-mac-addins</Package>
-    </Reference>
+    <Reference Include="MonoMac" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />

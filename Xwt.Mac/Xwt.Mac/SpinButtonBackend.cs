@@ -1,7 +1,7 @@
 using System;
 
 using Xwt.Backends;
-using Xwt.Engine;
+
 using MonoMac.Foundation;
 using MonoMac.AppKit;
 
@@ -12,7 +12,6 @@ namespace Xwt.Mac
 		public override void Initialize ()
 		{
 			ViewObject = new MacSpinButton (EventSink);
-			//Widget.SizeToFit ();
 		}
 		
 		protected new ISpinButtonEventSink EventSink {
@@ -65,6 +64,16 @@ namespace Xwt.Mac
 		public void SetButtonStyle (ButtonStyle style)
 		{
 			Widget.SetButtonStyle (style);
+		}
+
+		public string IndeterminateMessage {
+			get;
+			set;
+		}
+
+		public bool IsIndeterminate {
+			get;
+			set;
 		}
 	}
 
@@ -154,7 +163,7 @@ namespace Xwt.Mac
 			}
 		}
 
-		public Widget Frontend { get; set; }
+		public ViewBackend Backend { get; set; }
 		
 		public NSView View {
 			get { return this; }

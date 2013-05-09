@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using System.Text;
 using Xwt;
 
@@ -69,6 +70,13 @@ MediaPicker API:
 		//Present Image here
 	});
 
+Foo API:
+
+```csharp
+Console.WriteLine (""Foo!"")
+Console.WriteLine (""Testing fenced block support!"")
+```
+
 # Documentation
 
 - Technical Docs: http://betaapi.xamarin.com/?link=root:/Xamarin.Mobile
@@ -136,13 +144,22 @@ Features:
 
 		public MarkDownSample()
 		{
-			MarkdownView markdown = new MarkdownView() {
+			var openFileDialog = new OpenFileDialog ("Select File");
+			var markdown = new MarkdownView() {
 				Markdown = MarkDownText
 			};
 			var scrolled = new ScrollView (markdown) {
 				MinHeight = 400
 			};
 
+			var button = new Button ("Open File");
+			button.Clicked += delegate {
+				if (openFileDialog.Run (ParentWindow)) {
+					markdown.Markdown = File.ReadAllText (openFileDialog.FileName);
+				}
+			};
+
+			PackStart (button, BoxMode.FillAndExpand);
 			PackStart (scrolled, BoxMode.FillAndExpand);
 		}
 	}

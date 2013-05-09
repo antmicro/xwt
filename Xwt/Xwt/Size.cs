@@ -92,9 +92,14 @@ namespace Xwt {
 			return (s1.width != s2.width) || (s1.height != s2.height);
 		}
 		
-		public static explicit operator Point(Size size) 
+		public static explicit operator Point (Size size) 
 		{
 			return new Point (size.Width, size.Height);
+		}
+		
+		public static explicit operator Distance (Size size) 
+		{
+			return new Distance (size.Width, size.Height);
 		}
 		
 		public override bool Equals (object ob)
@@ -150,9 +155,9 @@ namespace Xwt {
 			if (i == -1)
 				return Size.Zero;
 			double w, h;
-			if (!double.TryParse (value.Substring (0, i), out w))
+			if (!double.TryParse (value.Substring (0, i), NumberStyles.Any, CultureInfo.InvariantCulture, out w))
 				return Size.Zero;
-			if (!double.TryParse (value.Substring (i+1), out h))
+			if (!double.TryParse (value.Substring (i+1), NumberStyles.Any, CultureInfo.InvariantCulture, out h))
 				return Size.Zero;
 			return new Size (w, h);
 		}

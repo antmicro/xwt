@@ -43,15 +43,25 @@ namespace Xwt.WPFBackend
 		public System.Windows.Controls.Menu mainMenu;
 		MenuBackend mainMenuBackend;
 		FrameworkElement widget;
-		Thickness padding;
+		DockPanel contentBox;
 
 		public WindowBackend ()
 		{
-			Window = new System.Windows.Window ();
+			Window = new WpfWindow ();
 			Window.UseLayoutRounding = true;
 			rootPanel = CreateMainGrid ();
+			contentBox = new DockPanel ();
 
 			Window.Content = rootPanel;
+			Grid.SetColumn (contentBox, 0);
+			Grid.SetRow (contentBox, 1);
+			rootPanel.Children.Add (contentBox);
+		}
+
+		public override void Initialize ()
+		{
+			base.Initialize ();
+			((WpfWindow)Window).Frontend = (Window) Frontend;
 		}
 
 		// A Grid with a single column, and two rows (menu and child control).
@@ -76,15 +86,23 @@ namespace Xwt.WPFBackend
 
 		public void SetChild (IWidgetBackend child)
 		{
-			if (widget != null)
-				rootPanel.Children.Remove(widget);
+			if (widget != null) {
+				contentBox.Children.Remove (widget);
+				widget.SizeChanged -= ChildSizeChanged;
+			}
 			widget = ((IWpfWidgetBackend)child).Widget;
+			contentBox.Children.Add (widget);
 
-			widget.Margin = padding;
-			Grid.SetColumn (widget, 0);
-			Grid.SetRow (widget, 1);
+			// This event is subscribed to ensure that the content of the
+			// widget is reallocated when the widget gets a new size. This
+			// is not a problem when setting the child before showing the
+			// window, but it may be a problem if the window is already visible.
+			widget.SizeChanged += ChildSizeChanged;
+		}
 
-			rootPanel.Children.Add (widget);
+		void ChildSizeChanged (object o, SizeChangedEventArgs args)
+		{
+			((Window)Frontend).Content.Surface.Reallocate ();
 		}
 
 		public void SetMainMenu (IMenuBackend menu)
@@ -117,9 +135,7 @@ namespace Xwt.WPFBackend
 
 		public void SetPadding (double left, double top, double right, double bottom)
 		{
-			padding = new Thickness (left, top, right, bottom);
-			if (widget != null)
-				widget.Margin = padding;
+			contentBox.Margin = new Thickness (left, top, right, bottom);
 		}
 
 		public virtual void SetMinSize (Size s)
@@ -127,6 +143,23 @@ namespace Xwt.WPFBackend
 			var r = ToNonClientRect (new Rectangle (0, 0, s.Width, s.Height));
 			Window.MinHeight = r.Height;
 			Window.MinWidth = r.Width;
+		}
+
+		public virtual Size ImplicitMinSize {
+			get { return new Size (0,0); }
+		}
+	}
+
+	class WpfWindow : System.Windows.Window
+	{
+		public Window Frontend;
+
+		protected override System.Windows.Size ArrangeOverride (System.Windows.Size arrangeBounds)
+		{
+			var s = base.ArrangeOverride (arrangeBounds);
+			if (Frontend.Content != null)
+				Frontend.Content.Surface.Reallocate ();
+			return s;
 		}
 	}
 }

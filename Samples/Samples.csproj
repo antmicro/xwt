@@ -39,6 +39,9 @@
     <Compile Include="Samples\ChartSample.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Samples\ReliefFrameSample.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Samples\Spinners.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -59,8 +62,13 @@
     </Compile>
     <Compile Include="MainWindow.cs">
       <SubType>Component</SubType>
+      <DeployService-Deploy>True</DeployService-Deploy>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>
-    <Compile Include="App.cs" />
+    <Compile Include="App.cs">
+      <DeployService-Deploy>True</DeployService-Deploy>
+      <Gettext-ScanForTranslations>False</Gettext-ScanForTranslations>
+    </Compile>
     <Compile Include="MonoDevelop.Components.Chart\Axis.cs" />
     <Compile Include="MonoDevelop.Components.Chart\AxisDimension.cs" />
     <Compile Include="MonoDevelop.Components.Chart\AxisPosition.cs" />
@@ -159,7 +167,12 @@
     <Compile Include="Samples\Markdown.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Samples\PopoverSample.cs" />
+    <Compile Include="Samples\PopoverSample.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Samples\ScreensSample.cs" />
+    <Compile Include="Samples\ImageScaling.cs" />
+    <Compile Include="Samples\RadioButtonSample.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -177,6 +190,13 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Samples\cow.jpg">
       <LogicalName>cow.jpg</LogicalName>
+      <DeployService-Deploy>True</DeployService-Deploy>
+    </EmbeddedResource>
+    <EmbeddedResource Include="document-generic.png">
+      <LogicalName>document-generic.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="document-generic%402x.png">
+      <LogicalName>document-generic@2x.png</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <ProjectExtensions>

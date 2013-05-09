@@ -25,29 +25,22 @@
 // THE SOFTWARE.
 using System;
 using Xwt.Backends;
-using Xwt.Engine;
+
 
 namespace Xwt.Drawing
 {
 	public sealed class ImagePattern: Pattern
 	{
-		static IImagePatternBackendHandler handler;
-		
-		static ImagePattern ()
+		public ImagePattern (Image image)
 		{
-			handler = WidgetRegistry.CreateSharedBackend<IImagePatternBackendHandler> (typeof(ImagePattern));
+			Backend = ToolkitEngine.ImagePatternBackendHandler.Create (image != null ? image.ImageDescription : ImageDescription.Null);
 		}
-		
-		protected override Xwt.Backends.IBackendHandler BackendHandler {
-			get {
-				return handler;
-			}
-		}
-		
-		public ImagePattern (Image img)
+
+		public override void Dispose ()
 		{
-			Backend = ((IImagePatternBackendHandler)BackendHandler).Create (GetBackend (img));
+			ToolkitEngine.ImagePatternBackendHandler.Dispose (Backend);
 		}
+
 	}
 }
 

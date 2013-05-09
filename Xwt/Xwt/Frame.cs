@@ -27,9 +27,12 @@ using System;
 using Xwt.Backends;
 using System.ComponentModel;
 using Xwt.Drawing;
+using System.Windows.Markup;
 
 namespace Xwt
 {
+	[BackendType (typeof(IFrameBackend))]
+	[ContentProperty("Content")]
 	public class Frame: Widget
 	{
 		Widget child;
@@ -39,20 +42,6 @@ namespace Xwt
 		
 		protected new class WidgetBackendHost: Widget.WidgetBackendHost, IFrameEventSink
 		{
-			public override void OnSpacingChanged (WidgetSpacing source)
-			{
-				Frame f = (Frame)Parent;
-				if (source == f.borderWidth) {
-					f.Backend.SetBorderSize (source.Left, source.Right, source.Top, source.Bottom);
-					f.OnPreferredSizeChanged ();
-				}
-				else if (source == f.padding) {
-					f.Backend.SetPadding (source.Left, source.Right, source.Top, source.Bottom);
-					f.OnPreferredSizeChanged ();
-				}
-				else
-					base.OnSpacingChanged (source);
-			}
 		}
 		
 		protected override BackendHost CreateBackendHost ()
@@ -66,8 +55,6 @@ namespace Xwt
 		
 		public Frame ()
 		{
-			borderWidth = new WidgetSpacing (this.BackendHost);
-			padding = new WidgetSpacing (this.BackendHost);
 		}
 		
 		public Frame (FrameType frameType): this ()
@@ -100,17 +87,110 @@ namespace Xwt
 		
 		public WidgetSpacing Padding {
 			get { return padding; }
+			set {
+				padding = value;
+				UpdatePadding ();
+			}
+		}
+
+		[DefaultValue (0d)]
+		public double PaddingLeft {
+			get { return padding.Left; }
+			set {
+				padding.Left = value;
+				UpdatePadding (); 
+			}
+		}
+
+		[DefaultValue (0d)]
+		public double PaddingRight {
+			get { return padding.Right; }
+			set {
+				padding.Right = value;
+				UpdatePadding (); 
+			}
+		}
+
+		[DefaultValue (0d)]
+		public double PaddingTop {
+			get { return padding.Top; }
+			set {
+				padding.Top = value;
+				UpdatePadding (); 
+			}
+		}
+
+		[DefaultValue (0d)]
+		public double PaddingBottom {
+			get { return padding.Bottom; }
+			set {
+				padding.Bottom = value;
+				UpdatePadding (); 
+			}
+		}
+
+		void UpdatePadding ()
+		{
+			Backend.SetPadding (padding.Left, padding.Right, padding.Top, padding.Bottom);
+			OnPreferredSizeChanged ();
 		}
 		
 		public WidgetSpacing BorderWidth {
 			get { return borderWidth; }
+			set {
+				borderWidth = value;
+				UpdatePadding ();
+			}
 		}
-		
+
+		[DefaultValue (0d)]
+		public double BorderWidthLeft {
+			get { return borderWidth.Left; }
+			set {
+				borderWidth.Left = value;
+				UpdatePadding (); 
+			}
+		}
+
+		[DefaultValue (0d)]
+		public double BorderWidthRight {
+			get { return borderWidth.Right; }
+			set {
+				borderWidth.Right = value;
+				UpdatePadding (); 
+			}
+		}
+
+		[DefaultValue (0d)]
+		public double BorderWidthTop {
+			get { return borderWidth.Top; }
+			set {
+				borderWidth.Top = value;
+				UpdatePadding (); 
+			}
+		}
+
+		[DefaultValue (0d)]
+		public double BorderWidthBottom {
+			get { return borderWidth.Bottom; }
+			set {
+				borderWidth.Bottom = value;
+				UpdatePadding (); 
+			}
+		}
+
+		void UpdateBorderWidth ()
+		{
+			Backend.SetBorderSize (borderWidth.Left, borderWidth.Right, borderWidth.Top, borderWidth.Bottom);
+			OnPreferredSizeChanged ();
+		}
+
 		public Color BorderColor {
 			get { return Backend.BorderColor; }
 			set { Backend.BorderColor = value; }
 		}
-		
+
+		[DefaultValue (null)]
 		public new Widget Content {
 			get { return child; }
 			set {

@@ -31,7 +31,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using Xwt.Backends;
-using Xwt.Engine;
+
 using Orientation = Xwt.Backends.Orientation;
 using SW = System.Windows;
 using SWC = System.Windows.Controls;
@@ -151,10 +151,9 @@ namespace Xwt.WPFBackend
 		public double Position
 		{
 			get {
-				return position != -1 ? position * (direction == Orientation.Horizontal ? WidthPixelRatio : HeightPixelRatio) : 0;
+				return position != -1 ? position : 0;
 			}
 			set {
-				value /= direction == Orientation.Horizontal ? WidthPixelRatio : HeightPixelRatio;
 				if (position != value) {
 					position = value;
 					NotifyPositionChanged ();
@@ -165,7 +164,7 @@ namespace Xwt.WPFBackend
 		internal void NotifyPositionChanged ()
 		{
 			if (this.reportPositionChanged)
-				Toolkit.Invoke (((IPanedEventSink)EventSink).OnPositionChanged);
+				Context.InvokeUserCode (((IPanedEventSink)EventSink).OnPositionChanged);
 		}
 
 		PanelInfo GetPanel (int panel)
@@ -349,7 +348,7 @@ namespace Xwt.WPFBackend
 						var oldPanel2Size = oldAvailableSize - position - SplitterSize;
 						position = availableSize - oldPanel2Size - SplitterSize;
 					}
-					else if (!IsFixed (panel1))
+					else if (!IsFixed (panel1) && lastSize != 0)
 						position = availableSize * (position / oldAvailableSize);
 				}
 

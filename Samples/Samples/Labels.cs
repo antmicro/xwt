@@ -45,6 +45,19 @@ namespace Samples
 				TextColor = new Xwt.Drawing.Color (0, 0, 1)
 			};
 			PackStart (la);
+
+			la = new Label ("A crazy long label text with a lots of content and information in it but fortunately it should appear wrapped");
+			la.Wrap = WrapMode.Word;
+			PackStart (la);
+
+			la = new Label ("Another Label with red background") {
+				BackgroundColor = new Xwt.Drawing.Color (1, 0, 0),
+				TextColor = new Xwt.Drawing.Color (0, 0, 1)
+			};
+			PackStart (la);
+
+			la = new Label () { Markup = "Label with <b>bold</b> and <span color='#ff0000'>red</span> text" };
+			PackStart (la);
 		}
 	}
 }

@@ -43,16 +43,20 @@ namespace Xwt.WPFBackend
 			Widget = new WpfLabel ();
 		}
 
-		SWC.Label Label {
-			get { return (SWC.Label)Widget; }
+		WpfLabel Label {
+			get { return (WpfLabel)Widget; }
 		}
 
 		public string Text {
-			get { return (string)Label.Content; }
+			get { return Label.TextBlock.Text; }
 			set {
-				Label.Content = value;
+				Label.TextBlock.Text = value;
 				Widget.InvalidateMeasure();
 			}
+		}
+
+		public void SetFormattedText (FormattedText text)
+		{
 		}
 
 		public Xwt.Drawing.Color TextColor {
@@ -74,22 +78,64 @@ namespace Xwt.WPFBackend
 			set { Label.HorizontalContentAlignment = DataConverter.ToWpfAlignment (value); }
 		}
 
-		// TODO
-		public EllipsizeMode Ellipsize
+		public EllipsizeMode Ellipsize {
+			get {
+				if (Label.TextBlock.TextTrimming == TextTrimming.None)
+					return Xwt.EllipsizeMode.None;
+				else
+					return Xwt.EllipsizeMode.End;
+			}
+			set {
+				if (value == EllipsizeMode.None)
+					Label.TextBlock.TextTrimming = TextTrimming.None;
+				else
+					Label.TextBlock.TextTrimming = TextTrimming.CharacterEllipsis;
+			}
+		}
+
+		public WrapMode Wrap {
+			get {
+				if (Label.TextBlock.TextWrapping == TextWrapping.NoWrap)
+					return WrapMode.None;
+				else
+					return WrapMode.Word;
+			} set {
+				if (value == WrapMode.None)
+					Label.TextBlock.TextWrapping = TextWrapping.NoWrap;
+				else
+					Label.TextBlock.TextWrapping = TextWrapping.Wrap;
+			}
+		}
+
+		public override WidgetSize GetPreferredWidth ()
 		{
-			get;
-			set;
+			if (Label.TextBlock.TextWrapping == TextWrapping.Wrap)
+				return new WidgetSize (0);
+			else
+				return base.GetPreferredWidth ();
 		}
 	}
 
 	class WpfLabel : SWC.Label, IWpfWidget
 	{
+		public WpfLabel ()
+		{
+			TextBlock = new SWC.TextBlock ();
+			Content = TextBlock;
+			Padding = new Thickness (0);
+		}
+
 		public WidgetBackend Backend { get; set; }
 
 		protected override System.Windows.Size MeasureOverride (System.Windows.Size constraint)
 		{
 			var s = base.MeasureOverride (constraint);
 			return Backend.MeasureOverride (constraint, s);
+		}
+
+		public SWC.TextBlock TextBlock {
+			get;
+			set;
 		}
 	}
 }

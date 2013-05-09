@@ -83,7 +83,7 @@ namespace Xwt.GtkBackend
 		
 		public void UpdateLabel (NotebookTab tab, string hint)
 		{
-			IWidgetBackend widget = (IWidgetBackend) WidgetRegistry.GetBackend (tab.Child);
+			IWidgetBackend widget = (IWidgetBackend) Toolkit.GetBackend (tab.Child);
 			Widget.SetTabLabel (GetWidget (widget), CreateLabel (tab));
 		}
 		
@@ -109,12 +109,11 @@ namespace Xwt.GtkBackend
 			}
 		}
 		
-		Gtk.Widget CreateLabel(NotebookTab tab)
+		Gtk.Widget CreateLabel (NotebookTab tab)
 		{
 			var vbox = new Gtk.HBox();
-
-			Gtk.Label label = new Gtk.Label(tab.Label);
-			label.Show();
+			Gtk.Label label = new Gtk.Label (tab.Label);
+			label.Show ();
 			vbox.PackStart(label);
 
 			if(!label.Text.StartsWith(char.ConvertFromUtf32(0x200B)))

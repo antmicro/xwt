@@ -1,6 +1,7 @@
 using System;
 using Xwt;
 using Xwt.Drawing;
+using System.Xml;
 
 namespace Samples
 {
@@ -21,6 +22,10 @@ namespace Samples
 		
 		public MainWindow ()
 		{
+			Title = "Xwt Demo Application";
+			Width = 500;
+			Height = 400;
+
 			try {
 				statusIcon = Application.CreateStatusIcon ();
 				statusIcon.Menu = new Menu ();
@@ -55,7 +60,7 @@ namespace Samples
 			
 			HPaned box = new HPaned ();
 			
-			icon = Image.FromResource (typeof(App), "class.png");
+			icon = Image.FromResource (typeof(App), "document-generic.png");
 			
 			store = new TreeStore (nameCol, iconCol, widgetCol);
 			samplesTree = new TreeView ();
@@ -71,14 +76,16 @@ namespace Samples
 			AddSample (null, "Drag & Drop", typeof(DragDrop));
 			
 			var n = AddSample (null, "Drawing", null);
-			AddSample (n, "Canvas with Widget", typeof(CanvasWithWidget));
-			AddSample (n, "Chart", typeof(ChartSample));
+			AddSample (n, "Canvas with Widget (Linear)", typeof (CanvasWithWidget_Linear));
+			AddSample (n, "Canvas with Widget (Radial)", typeof (CanvasWithWidget_Radial));
+			AddSample (n, "Chart", typeof (ChartSample));
 			AddSample (n, "Colors", typeof(ColorsSample));
 			AddSample (n, "Figures", typeof(DrawingFigures));
 			AddSample (n, "Transformations", typeof(DrawingTransforms));
 			AddSample (n, "Images and Patterns", typeof(DrawingPatternsAndImages));
 			AddSample (n, "Text", typeof(DrawingText));
 			AddSample (n, "Partial Images", typeof (PartialImages));
+			AddSample (n, "Custom Drawn Image", typeof (ImageScaling));
 
 			AddSample (null, "Expander", typeof (ExpanderSample));
 			AddSample (null, "Progress bars", typeof(ProgressBarSample));
@@ -93,10 +100,13 @@ namespace Samples
 			AddSample (null, "Notebook", typeof(NotebookSample));
 			AddSample (null, "Paneds", typeof(PanedViews));
 			AddSample (null, "Popover", typeof(PopoverSample));
+			AddSample (null, "RadioButton", typeof (RadioButtonSample));
+			AddSample (null, "ReliefFrame", typeof (ReliefFrameSample));
+			AddSample (null, "Screens", typeof (ScreensSample));
 			AddSample (null, "Scroll View", typeof(ScrollWindowSample));
 			AddSample (null, "Spinners", typeof (Spinners));
-			AddSample (null, "Tables", typeof(Tables));
-			AddSample (null, "Text Entry", typeof(TextEntries));
+			AddSample (null, "Tables", typeof (Tables));
+			AddSample (null, "Text Entry", typeof (TextEntries));
 			AddSample (null, "Tooltips", typeof(Tooltips));
 			AddSample (null, "TreeView", typeof(TreeViews));
 			AddSample (null, "WidgetEvents", typeof(WidgetEvents));
@@ -117,6 +127,13 @@ namespace Samples
 			Content = box;
 			
 			samplesTree.SelectionChanged += HandleSamplesTreeSelectionChanged;
+
+			CloseRequested += HandleCloseRequested;
+		}
+
+		void HandleCloseRequested (object sender, CloseRequestedEventArgs args)
+		{
+			args.Handled = !MessageDialog.Confirm ("Samples will be closed", Command.Ok);
 		}
 		
 		protected override void Dispose (bool disposing)
@@ -139,8 +156,8 @@ namespace Samples
 						s.Widget = (Widget)Activator.CreateInstance (s.Type);
 					sampleBox.PackStart (s.Widget, BoxMode.FillAndExpand);
 				}
-				
-//				string txt = System.Xaml.XamlServices.Save (s);
+
+			//	Console.WriteLine (System.Xaml.XamlServices.Save (s.Widget));
 				currentSample = s.Widget;
 				Dump (currentSample, 0);
 			}

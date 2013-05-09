@@ -68,6 +68,10 @@ namespace Xwt.WPFBackend
 			}
 		}
 
+		public void SetFormattedText(FormattedText text)
+		{
+		}
+
 		public Alignment TextAlignment
 		{
 			get { return DataConverter.ToXwtAlignment (Widget.HorizontalContentAlignment); }
@@ -77,6 +81,11 @@ namespace Xwt.WPFBackend
 		// TODO
 		public EllipsizeMode Ellipsize
 		{
+			get;
+			set;
+		}
+
+		public WrapMode Wrap {
 			get;
 			set;
 		}
@@ -99,7 +108,7 @@ namespace Xwt.WPFBackend
 			if (eventId is LinkLabelEvent) {
 				switch ((LinkLabelEvent) eventId) {
 				case LinkLabelEvent.NavigateToUrl:
-					Widget.Hyperlink.RequestNavigate += HandleClicked;
+					Widget.Hyperlink.Click += HandleClicked;
 					break;
 				}
 			}
@@ -111,7 +120,7 @@ namespace Xwt.WPFBackend
 			if (eventId is LinkLabelEvent) {
 				switch ((LinkLabelEvent) eventId) {
 				case LinkLabelEvent.NavigateToUrl:
-					Widget.Hyperlink.RequestNavigate -= HandleClicked;
+					Widget.Hyperlink.Click -= HandleClicked;
 					break;
 				}
 			}
@@ -119,7 +128,7 @@ namespace Xwt.WPFBackend
 
 		void HandleClicked (object sender, EventArgs e)
 		{
-			Xwt.Engine.Toolkit.Invoke (() => {
+			Context.InvokeUserCode (() => {
 				EventSink.OnNavigateToUrl (Uri);
 			});
 		}

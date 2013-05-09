@@ -25,7 +25,7 @@
 // THE SOFTWARE.
 using System;
 using Xwt.Backends;
-using Xwt.Engine;
+
 
 namespace Xwt.GtkBackend
 {
@@ -58,7 +58,7 @@ namespace Xwt.GtkBackend
 		{
 			theColumn.Clear ();
 			foreach (var v in views)
-				CellUtil.CreateCellRenderer (this, theColumn, v);
+				CellUtil.CreateCellRenderer (ApplicationContext, this, theColumn, v, Widget.Model);
 		}
 		
 		public override void EnableEvent (object eventId)
@@ -81,7 +81,7 @@ namespace Xwt.GtkBackend
 
 		void HandleWidgetSelectionChanged (object sender, EventArgs e)
 		{
-			Toolkit.Invoke (delegate {
+			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnSelectionChanged ();
 			});
 		}
