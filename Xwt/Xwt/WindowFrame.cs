@@ -73,6 +73,7 @@ namespace Xwt
 		Size size;
 		bool pendingReallocation;
 		Image icon;
+
 		WindowFrame transientFor;
 		
 		protected class WindowBackendHost: BackendHost<WindowFrame,IWindowFrameBackend>, IWindowFrameEventSink
@@ -247,7 +248,7 @@ namespace Xwt
 			get { return icon; }
 			set { icon = value; Backend.SetIcon (icon != null ? icon.GetImageDescription (BackendHost.ToolkitEngine) : ImageDescription.Null); }
 		}
-		
+
 		public bool Decorated {
 			get { return Backend.Decorated; }
 			set { Backend.Decorated = value; }
