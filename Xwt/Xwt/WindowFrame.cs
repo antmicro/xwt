@@ -72,7 +72,9 @@ namespace Xwt
 		Point location;
 		Size size;
 		bool pendingReallocation;
+		#pragma warning disable 0649
 		Image icon;
+		#pragma warning restore 0649
 		WindowFrame transientFor;
 		
 		protected class WindowBackendHost: BackendHost<WindowFrame,IWindowFrameBackend>, IWindowFrameEventSink
