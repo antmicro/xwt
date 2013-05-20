@@ -73,7 +73,6 @@ namespace Xwt
 		Size size;
 		bool pendingReallocation;
 		Image icon;
-
 		WindowFrame transientFor;
 		
 		protected class WindowBackendHost: BackendHost<WindowFrame,IWindowFrameBackend>, IWindowFrameEventSink
