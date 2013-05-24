@@ -24,8 +24,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
+
+
+
 namespace Xwt.Backends
 {
+	/// <summary>
+	/// Base backend class for XWT-based widgets
+	/// </summary>
+	/// <remarks>
+	/// This class can be used to implement backends fully based on XWT widgets.
+	/// For example, XWT has an implementation of a color selector. If a backend
+	/// doesn't have native color selector, the XWT one will be used. 
+	/// </remarks>
 	public class XwtWidgetBackend: Widget, IWidgetBackend
 	{
 		protected Widget Frontend {
@@ -41,7 +52,7 @@ namespace Xwt.Backends
 		}
 
 		#region IBackend implementation
-		void IBackend.InitializeBackend (object frontend)
+		void IBackend.InitializeBackend (object frontend, ApplicationContext toolkit)
 		{
 			Frontend = (Widget) frontend;
 		}

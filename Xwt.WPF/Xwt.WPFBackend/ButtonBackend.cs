@@ -33,7 +33,7 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using SWC = System.Windows.Controls;
 using Xwt.Backends;
-using Xwt.Engine;
+
 
 namespace Xwt.WPFBackend
 {
@@ -95,31 +95,25 @@ namespace Xwt.WPFBackend
 			Button.InvalidateMeasure ();
 		}
 
-		public void SetContent (string label, object imageBackend, ContentPosition position)
+		public void SetContent (string label, ImageDescription image, ContentPosition position)
 		{
-			if (imageBackend == null)
+			if (image.IsNull)
 				Button.Content = label;
-			else if (String.IsNullOrEmpty (label))
-				Button.Content = new SWC.Image { Source = DataConverter.AsImageSource (imageBackend) };
 			else
 			{
 				SWC.DockPanel grid = new SWC.DockPanel ();
 
-				var img = DataConverter.AsImageSource (imageBackend);
-				SWC.Image imageCtrl = new SWC.Image
-				{
-					Source = img,
-					Width = img.Width,
-					Height = img.Height
-				};
+				var imageCtrl = new ImageBox (Context);
+				imageCtrl.ImageSource = image;
 
 				SWC.DockPanel.SetDock (imageCtrl, DataConverter.ToWpfDock (position));
 				grid.Children.Add (imageCtrl);
 
-				SWC.Label labelCtrl = new SWC.Label ();
-				labelCtrl.Content = label;
-				grid.Children.Add (labelCtrl);
-
+				if (!string.IsNullOrEmpty (label)) {
+					SWC.Label labelCtrl = new SWC.Label ();
+					labelCtrl.Content = label;
+					grid.Children.Add (labelCtrl);
+				}
 				Button.Content = grid;
 			}
 			Button.InvalidateMeasure ();
@@ -151,7 +145,7 @@ namespace Xwt.WPFBackend
 
 		void HandleWidgetClicked (object sender, EventArgs e)
 		{
-			Toolkit.Invoke (EventSink.OnClicked);
+			Context.InvokeUserCode (EventSink.OnClicked);
 		}
 
 		private static ResourceDictionary buttonsDictionary;

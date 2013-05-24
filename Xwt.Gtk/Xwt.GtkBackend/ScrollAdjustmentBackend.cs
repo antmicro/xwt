@@ -25,7 +25,7 @@
 // THE SOFTWARE.
 using System;
 using Xwt.Backends;
-using Xwt.Engine;
+
 
 namespace Xwt.GtkBackend
 {
@@ -33,6 +33,7 @@ namespace Xwt.GtkBackend
 	{
 		Gtk.Adjustment adjustment;
 		IScrollAdjustmentEventSink eventSink;
+		ApplicationContext context;
 		
 		public Gtk.Adjustment Adjustment {
 			get { return adjustment; }
@@ -48,8 +49,9 @@ namespace Xwt.GtkBackend
 		}
 		
 		#region IBackend implementation
-		public void InitializeBackend (object frontend)
+		public void InitializeBackend (object frontend, ApplicationContext context)
 		{
+			this.context = context;
 			if (adjustment == null)
 				adjustment = new Gtk.Adjustment (0, 0, 0, 0, 0, 0);
 		}
@@ -77,7 +79,7 @@ namespace Xwt.GtkBackend
 
 		void HandleValueChanged (object sender, EventArgs e)
 		{
-			Toolkit.Invoke (delegate {
+			context.InvokeUserCode (delegate {
 				eventSink.OnValueChanged ();
 			});
 		}
@@ -86,29 +88,39 @@ namespace Xwt.GtkBackend
 		#region IScrollAdjustmentBackend implementation
 		public double Value {
 			get {
-				return adjustment.Value;
+				return lower + adjustment.Value;
 			}
 			set {
-				adjustment.Value = value;
+				adjustment.Value = value - lower;
 			}
 		}
 
+		double lower;
 		public double LowerValue {
 			get {
-				return adjustment.Lower;
+				return lower;
 			}
 			set {
-				adjustment.Lower = value;
+				lower = value;
+				UpdateRange ();
 			}
 		}
 
+		double upper;
 		public double UpperValue {
 			get {
-				return adjustment.Upper;
+				return upper;
 			}
 			set {
-				adjustment.Upper = value;
+				upper = value;
+				UpdateRange ();
 			}
+		}
+
+		void UpdateRange ()
+		{
+			var newUpper = upper - lower;
+			adjustment.Upper = newUpper >= 0 ? newUpper : 0;
 		}
 
 		public double PageIncrement {

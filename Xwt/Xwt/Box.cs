@@ -34,6 +34,7 @@ using System.Windows.Markup;
 
 namespace Xwt
 {
+	[BackendType (typeof(IBoxBackend))]
 	public class Box: Widget
 	{
 		ChildrenCollection<BoxPlacement> children;
@@ -80,7 +81,10 @@ namespace Xwt
 		
 		public double Spacing {
 			get { return spacing; }
-			set { spacing = value; OnPreferredSizeChanged (); }
+			set {
+				spacing = value > 0 ? value : 0;
+				OnPreferredSizeChanged ();
+			}
 		}
 		
 		public ChildrenCollection<BoxPlacement> Placements {
@@ -101,7 +105,7 @@ namespace Xwt
 			PackStart (widget, mode, 0);
 		}
 		
-		public void PackStart (Widget widget, BoxMode mode, int padding)
+		public void PackStart (Widget widget, BoxMode mode, double padding)
 		{
 			Pack (widget, mode, padding, PackOrigin.Start);
 		}
@@ -116,13 +120,17 @@ namespace Xwt
 			PackEnd (widget, mode, 0);
 		}
 		
-		public void PackEnd (Widget widget, BoxMode mode, int padding)
+		public void PackEnd (Widget widget, BoxMode mode, double padding)
 		{
 			Pack (widget, mode, padding, PackOrigin.End);
 		}
 		
-		void Pack (Widget widget, BoxMode mode, int padding, PackOrigin ptype)
+		void Pack (Widget widget, BoxMode mode, double padding, PackOrigin ptype)
 		{
+			if (widget == null)
+				throw new ArgumentNullException ("widget");
+			if (padding < 0)
+				throw new ArgumentException ("padding can't be negative");
 			var p = new BoxPlacement ((WidgetBackendHost)BackendHost, widget);
 			p.BoxMode = mode;
 			p.Padding = padding;
@@ -132,6 +140,8 @@ namespace Xwt
 		
 		public bool Remove (Widget widget)
 		{
+			if (widget == null)
+				throw new ArgumentNullException ("widget");
 			for (int n=0; n<children.Count; n++) {
 				if (children[n].Child == widget) {
 					children.RemoveAt (n);
@@ -178,6 +188,8 @@ namespace Xwt
 		protected override void OnReallocate ()
 		{
 			var size = Backend.Size;
+			if (size.Width == 0 || size.Height == 0)
+				return;
 			
 			var visibleChildren = children.Where (c => c.Child.Visible).ToArray ();
 			IWidgetBackend[] widgets = new IWidgetBackend [visibleChildren.Length];
@@ -193,7 +205,7 @@ namespace Xwt
 						xe -= bp.NextSize + spacing;
 					double x = bp.PackOrigin == PackOrigin.Start ? xs : xe;
 					widgets[n] = (IWidgetBackend)GetBackend (bp.Child);
-					rects[n] = new Rectangle (x, 0, bp.NextSize, size.Height);
+					rects[n] = new Rectangle (x, 0, bp.NextSize >= 0 ? bp.NextSize : 0, size.Height >= 0 ? size.Height : 0);
 					if (bp.PackOrigin == PackOrigin.Start)
 						xs += bp.NextSize + spacing;
 				}
@@ -207,14 +219,14 @@ namespace Xwt
 						ye -= bp.NextSize + spacing;
 					double y = bp.PackOrigin == PackOrigin.Start ? ys : ye;
 					widgets[n] = (IWidgetBackend)GetBackend (bp.Child);
-					rects[n] = new Rectangle (0, y, size.Width, bp.NextSize);
+					rects[n] = new Rectangle (0, y, size.Width >= 0 ? size.Width : 0, bp.NextSize >= 0 ? bp.NextSize : 0);
 					if (bp.PackOrigin == PackOrigin.Start)
 						ys += bp.NextSize + spacing;
 				}
 			}
 			Backend.SetAllocation (widgets, rects);
 			
-			if (!Application.EngineBackend.HandlesSizeNegotiation) {
+			if (!BackendHost.EngineBackend.HandlesSizeNegotiation) {
 				foreach (var bp in visibleChildren)
 					bp.Child.Surface.Reallocate ();
 			}
@@ -387,7 +399,7 @@ namespace Xwt
 		IContainerEventSink<BoxPlacement> parent;
 		int position;
 		BoxMode boxMode = BoxMode.None;
-		int padding;
+		double padding;
 		PackOrigin packType = PackOrigin.Start;
 		Widget child;
 		
@@ -420,8 +432,8 @@ namespace Xwt
 			}
 		}
 
-		[DefaultValue (0)]
-		public int Padding {
+		[DefaultValue (0d)]
+		public double Padding {
 			get {
 				return this.padding;
 			}

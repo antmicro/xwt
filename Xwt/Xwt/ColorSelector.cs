@@ -31,6 +31,7 @@ using System.Collections.Generic;
 
 namespace Xwt
 {
+	[BackendType (typeof(IColorSelectorBackend))]
 	public class ColorSelector: Widget
 	{
 		protected new class WidgetBackendHost: Widget.WidgetBackendHost, IColorSelectorEventSink
@@ -38,7 +39,7 @@ namespace Xwt
 			protected override IBackend OnCreateBackend ()
 			{
 				var b = base.OnCreateBackend ();
-				if (b is ICustomWidgetBackend)
+				if (b == null)
 					b = new DefaultColorSelectorBackend ();
 				return b;
 			}
@@ -351,16 +352,16 @@ namespace Xwt
 		protected override void OnDraw (Context ctx, Rectangle dirtyRect)
 		{
 			if (colorBox == null) {
-				ImageBuilder ib = new ImageBuilder (size, size);
-				for (int i=0; i<size; i++) {
-					for (int j=0; j<size; j++) {
-						ib.Context.Rectangle (i, j, 1, 1);
-						ib.Context.SetColor (GetColor (i,j));
-						ib.Context.Fill ();
+				using (var ib = new ImageBuilder (size, size)) {
+					for (int i=0; i<size; i++) {
+						for (int j=0; j<size; j++) {
+							ib.Context.Rectangle (i, j, 1, 1);
+							ib.Context.SetColor (GetColor (i,j));
+							ib.Context.Fill ();
+						}
 					}
+					colorBox = ib.ToBitmap (this);
 				}
-				colorBox = ib.ToImage ();
-				ib.Dispose ();
 			}
 			ctx.DrawImage (colorBox, padding, padding);
 			ctx.SetLineWidth (1);

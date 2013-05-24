@@ -51,12 +51,13 @@
 // THE SOFTWARE.
 using System;
 using Xwt.Backends;
-using Xwt.Engine;
+
 using System.ComponentModel;
 using Xwt.Drawing;
 
 namespace Xwt
 {
+	[BackendType (typeof(IWindowFrameBackend))]
 	public class WindowFrame: XwtComponent
 	{
 		EventHandler boundsChanged;
@@ -76,8 +77,8 @@ namespace Xwt
 		{
 			protected override void OnBackendCreated ()
 			{
-				base.OnBackendCreated ();
 				Backend.Initialize (this);
+				base.OnBackendCreated ();
 				Parent.location = Backend.Bounds.Location;
 				Parent.size = Backend.Bounds.Size;
 				Backend.EnableEvent (WindowFrameEvent.BoundsChanged);
@@ -207,9 +208,9 @@ namespace Xwt
 			set { Backend.Title = value; }
 		}
 
-        	public Image Icon {
+		public Image Icon {
 			get { return icon; }
-			set { Backend.SetIcon((value as IFrontend).Backend); }
+			set { icon = value; Backend.SetIcon (icon != null ? icon.ImageDescription : ImageDescription.Null); }
 		}
 		
 		public bool Decorated {
@@ -229,12 +230,38 @@ namespace Xwt
 				Backend.SetTransientFor ((IWindowFrameBackend)(value as IFrontend).Backend);
 			}
 		}
+
+		public bool Resizable {
+			get { return Backend.Resizable; }
+			set { Backend.Resizable = value; }
+		}
 		
 		public bool Visible {
 			get { return Backend.Visible; }
 			set { Backend.Visible = value; }
 		}
 		
+		/// <summary>
+		/// Gets or sets a value indicating whether this window is in full screen mode
+		/// </summary>
+		/// <value><c>true</c> if the window is in full screen mode; otherwise, <c>false</c>.</value>
+		public bool FullScreen {
+			get { return Backend.FullScreen; }
+			set { Backend.FullScreen = value; }
+		}
+
+		/// <summary>
+		/// Gets the screen on which most of the area of this window is placed
+		/// </summary>
+		/// <value>The screen.</value>
+		public Screen Screen {
+			get {
+				if (!Visible)
+					throw new InvalidOperationException ("The window is not visible");
+				return Desktop.GetScreen (Backend.Screen);
+			}
+		}
+
 		public void Show ()
 		{
 			Visible = true;
@@ -315,7 +342,7 @@ namespace Xwt
 		{
 			if (!pendingReallocation) {
 				pendingReallocation = true;
-				Toolkit.QueueExitAction (delegate {
+				BackendHost.ToolkitEngine.QueueExitAction (delegate {
 					pendingReallocation = false;
 					OnReallocate ();
 				});

@@ -34,15 +34,23 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="gtk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <Reference Include="gtk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <Package>gtk-sharp-2.0</Package>
+    </Reference>
     <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
       <Package>glib-sharp-2.0</Package>
     </Reference>
-    <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
-    <Reference Include="gdk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <Package>gtk-sharp-2.0</Package>
+    </Reference>
+    <Reference Include="gdk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <Package>gtk-sharp-2.0</Package>
+    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="Mono.Cairo" />
-    <Reference Include="pango-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <Reference Include="pango-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
+      <Package>gtk-sharp-2.0</Package>
+    </Reference>
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
@@ -83,7 +91,6 @@
     <Compile Include="Xwt.GtkBackend\GtkAlertDialog.cs" />
     <Compile Include="Xwt.GtkBackend\MessageService.cs" />
     <Compile Include="Xwt.GtkBackend\GtkWorkarounds.cs" />
-    <Compile Include="Xwt.GtkBackend\PangoUtil.cs" />
     <Compile Include="Xwt.GtkBackend\WindowFrameBackend.cs" />
     <Compile Include="Xwt.GtkBackend\CheckBoxBackend.cs" />
     <Compile Include="Xwt.GtkBackend\FrameBackend.cs" />
@@ -97,14 +104,14 @@
     <Compile Include="Xwt.GtkBackend\CheckBoxMenuItemBackend.cs" />
     <Compile Include="Xwt.GtkBackend\RadioButtonMenuItemBackend.cs" />
     <Compile Include="Xwt.GtkBackend\SeparatorMenuItemBackend.cs" />
-    <Compile Include="Xwt.GtkBackend\ScrollAdjustmentBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\ScrollAdjustmentBackend.cs">
+      <Gettext-ScanForTranslations>False</Gettext-ScanForTranslations>
+    </Compile>
     <Compile Include="Xwt.GtkBackend\FileDialogBackend.cs" />
     <Compile Include="Xwt.GtkBackend\PanedBackend.cs" />
     <Compile Include="Xwt.GtkBackend\SelectColorDialogBackend.cs" />
     <Compile Include="Xwt.CairoBackend\CairoConversion.cs" />
-    <Compile Include="Xwt.CairoBackend\CairoTextLayoutBackendHandler.cs" />
     <Compile Include="Xwt.CairoBackend\CairoContextBackendHandler.cs" />
-    <Compile Include="Xwt.GtkBackend\ContextBackendHandler.cs" />
     <Compile Include="Xwt.CairoBackend\CairoGradientBackendHandler.cs" />
     <Compile Include="Xwt.GtkBackend\ListBoxBackend.cs" />
     <Compile Include="Xwt.GtkBackend\StatusIconBackend.cs" />
@@ -115,7 +122,15 @@
     <Compile Include="Xwt.GtkBackend\ExpanderBackend.cs" />
     <Compile Include="Xwt.GtkBackend\LinkLabelBackend.cs" />
     <Compile Include="Xwt.GtkBackend\SpinnerBackend.cs" />
-    <Compile Include="Xwt.GtkBackend\MarkdownViewBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\RichTextViewBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\GtkDesktopBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\GtkMacInterop.cs" />
+    <Compile Include="Xwt.GtkBackend\EmbeddedWidgetBackend.cs" />
+    <Compile Include="Xwt.GtkBackend.CellViews\CustomCellRenderer.cs" />
+    <Compile Include="Xwt.GtkBackend\SegmentedButtonBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\SliderBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\RadioButtonBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\GtkInterop.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

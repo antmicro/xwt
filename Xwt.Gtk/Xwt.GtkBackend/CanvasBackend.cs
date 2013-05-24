@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using Xwt.Backends;
 using System.Linq;
-using Xwt.Engine;
+
 using Xwt.CairoBackend;
 
 namespace Xwt.GtkBackend
@@ -42,7 +42,7 @@ namespace Xwt.GtkBackend
 		public override void Initialize ()
 		{
 			Widget = new CustomCanvas ();
-			Widget.Frontend = Frontend;
+			Widget.Backend = this;
 			Widget.EventSink = EventSink;
 			Widget.Events |= Gdk.EventMask.ButtonPressMask | Gdk.EventMask.ButtonReleaseMask | Gdk.EventMask.PointerMotionMask;
 			Widget.Show ();
@@ -95,16 +95,14 @@ namespace Xwt.GtkBackend
 	
 	class CustomCanvas: Gtk.EventBox
 	{
-		public Widget Frontend;
+		public CanvasBackend Backend;
 		public ICanvasEventSink EventSink;
 		Dictionary<Gtk.Widget, Rectangle> children = new Dictionary<Gtk.Widget, Rectangle> ();
 		
-		public CustomCanvas (IntPtr p): base (p)
-		{
-		}
-		
 		public CustomCanvas ()
 		{
+			GtkWorkarounds.FixContainerLeak (this);
+
 			WidgetFlags |= Gtk.WidgetFlags.AppPaintable;
 		}
 		
@@ -130,7 +128,7 @@ namespace Xwt.GtkBackend
 		protected override void OnSizeRequested (ref Gtk.Requisition requisition)
 		{
 			base.OnSizeRequested (ref requisition);
-			IWidgetSurface ws = Frontend.Surface;
+			IWidgetSurface ws = Backend.Frontend.Surface;
 			int h, w;
 			if (ws.SizeRequestMode == SizeRequestMode.HeightForWidth) {
 				w = (int)ws.GetPreferredWidth ().MinSize;
@@ -159,7 +157,7 @@ namespace Xwt.GtkBackend
 		{
 			base.OnSizeAllocated (allocation);
 			if (!lastAllocation.Equals (allocation))
-				((IWidgetSurface)Frontend).Reallocate ();
+				((IWidgetSurface)Backend.Frontend).Reallocate ();
 			lastAllocation = allocation;
 			foreach (var cr in children) {
 				var r = cr.Value;
@@ -176,16 +174,18 @@ namespace Xwt.GtkBackend
 		
 		protected override bool OnExposeEvent (Gdk.EventExpose evnt)
 		{
-			Toolkit.Invoke (delegate {
-				var a = evnt.Area;
-				EventSink.OnDraw (CreateContext (), new Rectangle (a.X, a.Y, a.Width, a.Height));
+			Backend.ApplicationContext.InvokeUserCode (delegate {
+				using (var context = CreateContext ()) {
+					var a = evnt.Area;
+					EventSink.OnDraw (context, new Rectangle (a.X, a.Y, a.Width, a.Height));
+				}
 			});
 			return base.OnExposeEvent (evnt);
 		}
 		
-		public object CreateContext ()
+		public CairoContextBackend CreateContext ()
 		{
-			CairoContextBackend ctx = new CairoContextBackend ();
+			CairoContextBackend ctx = new CairoContextBackend (Util.GetScaleFactor (this));
 			if (!IsRealized) {
 				Cairo.Surface sf = new Cairo.ImageSurface (Cairo.Format.ARGB32, 1, 1);
 				Cairo.Context c = new Cairo.Context (sf);

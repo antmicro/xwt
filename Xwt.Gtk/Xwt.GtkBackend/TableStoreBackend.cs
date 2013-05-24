@@ -26,7 +26,7 @@
 
 using System;
 using Xwt.Drawing;
-using Xwt.Engine;
+
 using Xwt.Backends;
 
 namespace Xwt.GtkBackend
@@ -35,11 +35,16 @@ namespace Xwt.GtkBackend
 	{
 		Gtk.TreeModel store;
 		Type[] types;
-		
+
 		public Gtk.TreeModel Store {
 			get {
 				return store;
 			}
+		}
+
+		public ApplicationContext ApplicationContext {
+			get;
+			private set;
 		}
 
 		public void Initialize (Type[] columnTypes)
@@ -47,7 +52,7 @@ namespace Xwt.GtkBackend
 			types = new Type[columnTypes.Length];
 			for (int n=0; n<types.Length; n++) {
 				if (columnTypes [n] == typeof(Image))
-					types [n] = typeof(Gdk.Pixbuf);
+					types [n] = typeof(ImageDescription);
 				else if (columnTypes [n] == typeof(Object))
 					types [n] = typeof(ObjectWrapper);
 				else
@@ -58,8 +63,9 @@ namespace Xwt.GtkBackend
 		
 		public abstract Gtk.TreeModel InitializeModel (Type[] columnTypes);
 		
-		public void InitializeBackend (object frontend)
+		public void InitializeBackend (object frontend, ApplicationContext context)
 		{
+			ApplicationContext = context;
 		}
 
 		public void SetValue (Gtk.TreeIter it, int column, object value)
@@ -69,7 +75,7 @@ namespace Xwt.GtkBackend
 			else if (value is string)
 				store.SetValue (it, column, (string)value);
 			else if (value is Image)
-				store.SetValue (it, column, (Gdk.Pixbuf)WidgetRegistry.GetBackend (value));
+				store.SetValue (it, column, ToolkitEngineBackend.GetImageDescription((Image)value).WithDefaultSize (Gtk.IconSize.Menu));
 			else
 				store.SetValue (it, column, value ?? DBNull.Value);
 		}
@@ -78,7 +84,7 @@ namespace Xwt.GtkBackend
 		{
 			object val = store.GetValue (it, column);
 			if (val is Gdk.Pixbuf)
-				return WidgetRegistry.CreateFrontend<Image> (val);
+				return ApplicationContext.Toolkit.WrapImage (val);
 			else if (val is DBNull)
 				return null;
 			else if (val is ObjectWrapper)

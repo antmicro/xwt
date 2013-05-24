@@ -26,7 +26,6 @@
 
 using System;
 using Xwt.Backends;
-using Xwt.Engine;
 using System.Reflection;
 
 namespace Xwt.GtkBackend
@@ -83,7 +82,7 @@ namespace Xwt.GtkBackend
 		
 		public void UpdateLabel (NotebookTab tab, string hint)
 		{
-			IWidgetBackend widget = (IWidgetBackend) WidgetRegistry.GetBackend (tab.Child);
+			IWidgetBackend widget = (IWidgetBackend) Toolkit.GetBackend (tab.Child);
 			Widget.SetTabLabel (GetWidget (widget), CreateLabel (tab));
 		}
 		
@@ -109,12 +108,11 @@ namespace Xwt.GtkBackend
 			}
 		}
 		
-		Gtk.Widget CreateLabel(NotebookTab tab)
+		Gtk.Widget CreateLabel (NotebookTab tab)
 		{
 			var vbox = new Gtk.HBox();
-
-			Gtk.Label label = new Gtk.Label(tab.Label);
-			label.Show();
+			Gtk.Label label = new Gtk.Label (tab.Label);
+			label.Show ();
 			vbox.PackStart(label);
 
 			if(!label.Text.StartsWith(char.ConvertFromUtf32(0x200B)))
@@ -124,7 +122,7 @@ namespace Xwt.GtkBackend
 				vbox.PackEnd(button, false, false, 0);
 				button.Show();
 				closeImage.Show();
-				var nativeWidget = GetWidget((IWidgetBackend)WidgetRegistry.GetBackend(tab.Child));
+				var nativeWidget = GetWidget((IWidgetBackend)Toolkit.GetBackend(tab.Child));
 				button.Clicked += (object sender, EventArgs e) => 
 				{
 					Widget.Remove(nativeWidget);

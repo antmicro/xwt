@@ -26,7 +26,7 @@
 using System;
 using Xwt.Backends;
 using MonoMac.AppKit;
-using Xwt.Engine;
+
 
 namespace Xwt.Mac
 {
@@ -60,8 +60,8 @@ namespace Xwt.Mac
 
 		public void SetPanel (int panel, IWidgetBackend widget, bool resize, bool shrink)
 		{
-			IMacViewBackend view = (IMacViewBackend) widget;
-			Widget.AddSubview (view.View);
+			ViewBackend view = (ViewBackend) widget;
+			Widget.AddSubview (view.Widget);
 			Widget.AdjustSubviews ();
 			view.NotifyPreferredSizeChanged ();
 		}
@@ -97,7 +97,7 @@ namespace Xwt.Mac
 			}
 		}
 
-		public Widget Frontend { get; set; }
+		public ViewBackend Backend { get; set; }
 	}
 }
 

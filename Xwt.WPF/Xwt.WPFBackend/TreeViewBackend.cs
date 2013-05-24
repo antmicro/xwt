@@ -32,7 +32,7 @@ using System.Windows.Documents;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using Xwt.Engine;
+
 using Xwt.Backends;
 using Xwt.WPFBackend.Utilities;
 using System.Windows;
@@ -212,9 +212,6 @@ namespace Xwt.WPFBackend
 			nodePosition = null;
 			this.dropPosition = pos = RowDropPosition.Into;
 
-			x *= WidthPixelRatio;
-			y *= HeightPixelRatio;
-
 			var result = VisualTreeHelper.HitTest (Tree, new System.Windows.Point (x, y)) as PointHitTestResult;
 
 			var element = (result != null) ? result.VisualHit as FrameworkElement : null;
@@ -307,7 +304,7 @@ namespace Xwt.WPFBackend
 
 		private void OnSelectedItemsChanged (object sender, EventArgs e)
 		{
-			Toolkit.Invoke (TreeViewEventSink.OnSelectionChanged);
+			Context.InvokeUserCode (TreeViewEventSink.OnSelectionChanged);
 		}
 
 		protected override void OnDragOver (object sender, DragOverEventArgs e)

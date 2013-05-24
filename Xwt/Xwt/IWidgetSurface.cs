@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 
+
 namespace Xwt
 {
 	public interface IWidgetSurface
@@ -75,7 +76,10 @@ namespace Xwt
 		WidgetSize GetPreferredWidthForHeight (double height);
 		
 		object NativeWidget { get; }
+
 		IEnumerable<Widget> Children { get; }
+
+		Toolkit ToolkitEngine { get; }
 	}
 }
 

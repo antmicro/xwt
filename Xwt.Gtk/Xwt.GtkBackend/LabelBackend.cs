@@ -28,6 +28,7 @@ using System;
 using Xwt.Backends;
 using Xwt.Drawing;
 using Xwt.CairoBackend;
+using System.Runtime.InteropServices;
 
 
 namespace Xwt.GtkBackend
@@ -35,7 +36,8 @@ namespace Xwt.GtkBackend
 	class LabelBackend: WidgetBackend, ILabelBackend
 	{
 		Color? bgColor, textColor;
-		
+		int wrapHeight, wrapWidth;
+
 		public LabelBackend ()
 		{
 			Widget = new Gtk.Label ();
@@ -75,12 +77,44 @@ namespace Xwt.GtkBackend
 				ctx.Fill ();
 			}
 		}
+
+		void HandleLabelDynamicSizeAllocate (object o, Gtk.SizeAllocatedArgs args)
+		{
+			int unused, oldHeight = wrapHeight;
+			Label.Layout.Width = Pango.Units.FromPixels (args.Allocation.Width);
+			Label.Layout.GetPixelSize (out unused, out wrapHeight);
+			if (wrapWidth != args.Allocation.Width || oldHeight != wrapHeight) {
+				wrapWidth = args.Allocation.Width;
+				Label.QueueResize ();
+			}
+		}
+
+		void HandleLabelDynamicSizeRequest (object o, Gtk.SizeRequestedArgs args)
+		{
+			if (wrapHeight > 0) {
+				var req = args.Requisition;
+				req.Width = 0;
+				req.Height = wrapHeight;
+				args.Requisition = req;
+			}
+		}
 		
-		public string Text {
+		public virtual string Text {
 			get { return Label.Text; }
 			set { Label.Text = value; }
 		}
 
+		public void SetFormattedText (FormattedText text)
+		{
+			Label.Text = text.Text;
+			var list = new FastPangoAttrList ();
+			TextIndexer indexer = new TextIndexer (text.Text);
+			list.AddAttributes (indexer, text.Attributes);
+			gtk_label_set_attributes (Label.Handle, list.Handle);
+		}
+
+		[DllImport (GtkInterop.LIBGTK, CallingConvention=CallingConvention.Cdecl)]
+		static extern void gtk_label_set_attributes (IntPtr label, IntPtr attrList);
 
 		public Xwt.Drawing.Color TextColor {
 			get {
@@ -134,6 +168,51 @@ namespace Xwt.GtkBackend
 				case Xwt.EllipsizeMode.Start: Label.Ellipsize = Pango.EllipsizeMode.Start; break;
 				case Xwt.EllipsizeMode.Middle: Label.Ellipsize = Pango.EllipsizeMode.Middle; break;
 				case Xwt.EllipsizeMode.End: Label.Ellipsize = Pango.EllipsizeMode.End; break;
+				}
+			}
+		}
+
+		public WrapMode Wrap {
+			get {
+				if (!Label.LineWrap)
+					return WrapMode.None;
+				else {
+					switch (Label.LineWrapMode) {
+					case Pango.WrapMode.Char:
+						return WrapMode.Character;
+					case Pango.WrapMode.Word:
+						return WrapMode.Word;
+					case Pango.WrapMode.WordChar:
+						return WrapMode.WordAndCharacter;
+					default:
+						return WrapMode.None;
+					}
+				}
+			}
+			set {
+				if (value == WrapMode.None){
+					if (Label.LineWrap) {
+						Label.LineWrap = false;
+						Label.SizeAllocated -= HandleLabelDynamicSizeAllocate;
+						Label.SizeRequested -= HandleLabelDynamicSizeRequest;
+					}
+				} else {
+					if (!Label.LineWrap) {
+						Label.LineWrap = true;
+						Label.SizeAllocated += HandleLabelDynamicSizeAllocate;
+						Label.SizeRequested += HandleLabelDynamicSizeRequest;
+					}
+					switch (value) {
+					case WrapMode.Character:
+						Label.LineWrapMode = Pango.WrapMode.Char;
+						break;
+					case WrapMode.Word:
+						Label.LineWrapMode = Pango.WrapMode.Word;
+						break;
+					case WrapMode.WordAndCharacter:
+						Label.LineWrapMode = Pango.WrapMode.WordChar;
+						break;
+					}
 				}
 			}
 		}

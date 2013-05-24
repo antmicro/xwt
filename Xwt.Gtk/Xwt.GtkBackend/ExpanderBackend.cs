@@ -1,7 +1,7 @@
 using System;
 
 using Xwt;
-using Xwt.Engine;
+
 using Xwt.Backends;
 
 namespace Xwt.GtkBackend
@@ -60,13 +60,13 @@ namespace Xwt.GtkBackend
 			base.DisableEvent (eventId);
 			if (eventId is ExpandEvent) {
 				if ((ExpandEvent)eventId == ExpandEvent.ExpandChanged)
-					Widget.Activated += HandleExpandedChanged;
+					Widget.Activated -= HandleExpandedChanged;
 			}
 		}
 
 		void HandleExpandedChanged (object sender, EventArgs e)
 		{
-			Toolkit.Invoke (delegate {
+			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.ExpandChanged ();
 			});
 		}

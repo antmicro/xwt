@@ -25,21 +25,36 @@
 // THE SOFTWARE.
 
 using System;
+using Xwt.Drawing;
+using System.ComponentModel;
 
 namespace Xwt
 {
-	public class ImageCellView: CellView
+	public sealed class ImageCellView: CellView
 	{
+		Image image;
+
 		public ImageCellView ()
 		{
 		}
 		
-		public ImageCellView (DataField imageField)
+		public ImageCellView (IDataField<Image> imageField)
 		{
 			ImageField = imageField;
 		}
 		
-		public DataField ImageField { get; set; }
+		public ImageCellView (Image image)
+		{
+			this.image = image;
+		}
+		
+		public IDataField<Image> ImageField { get; set; }
+
+		[DefaultValue (null)]
+		public Image Image {
+			get { return GetValue (ImageField, image); }
+			set { image = value; }
+		}
 	}
 }
 

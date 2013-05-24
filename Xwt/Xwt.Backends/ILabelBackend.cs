@@ -35,5 +35,7 @@ namespace Xwt.Backends
 		Color TextColor { get; set; }
 		Alignment TextAlignment { get; set; }
 		EllipsizeMode Ellipsize { get; set; }
+		WrapMode Wrap { get; set; }
+		void SetFormattedText (FormattedText text);
 	}
 }

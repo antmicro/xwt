@@ -33,7 +33,7 @@ using MonoMac.AppKit;
 using MonoMac.Foundation;
 using System.Drawing;
 using MonoMac.ObjCRuntime;
-using Xwt.Engine;
+
 
 namespace Xwt.Mac
 {
@@ -42,7 +42,8 @@ namespace Xwt.Mac
 		WindowBackendController controller;
 		IWindowFrameEventSink eventSink;
 		Window frontend;
-		IMacViewBackend child;
+		ViewBackend child;
+		bool sensitive = true;
 		
 		public WindowBackend (IntPtr ptr): base (ptr)
 		{
@@ -52,19 +53,33 @@ namespace Xwt.Mac
 		{
 			this.controller = new WindowBackendController ();
 			controller.Window = this;
-			StyleMask |= NSWindowStyle.Resizable;
+			StyleMask |= NSWindowStyle.Resizable | NSWindowStyle.Closable | NSWindowStyle.Miniaturizable;
 			ContentView.AutoresizesSubviews = true;
+
+			// TODO: do it only if mouse move events are enabled in a widget
+			AcceptsMouseMovedEvents = true;
+
 			Center ();
 		}
 
-		public virtual void InitializeBackend (object frontend)
+		public IWindowFrameEventSink EventSink {
+			get { return (IWindowFrameEventSink)eventSink; }
+		}
+
+		public virtual void InitializeBackend (object frontend, ApplicationContext context)
 		{
+			this.ApplicationContext = context;
 			this.frontend = (Window) frontend;
 		}
 		
 		public void Initialize (IWindowFrameEventSink eventSink)
 		{
 			this.eventSink = eventSink;
+		}
+		
+		public ApplicationContext ApplicationContext {
+			get;
+			private set;
 		}
 		
 		public object NativeWidget {
@@ -96,9 +111,12 @@ namespace Xwt.Mac
 
 		public bool Sensitive {
 			get {
-				return true;
+				return sensitive;
 			}
 			set {
+				sensitive = value;
+				if (child != null)
+					child.UpdateSensitiveStatus (child.Widget, sensitive);
 			}
 		}
 		
@@ -114,6 +132,39 @@ namespace Xwt.Mac
 		public void SetFocus ()
 		{
 		}
+
+		public bool FullScreen {
+			get {
+				if (MacSystemInformation.OsVersion < MacSystemInformation.Lion)
+					return false;
+
+				return (StyleMask & NSWindowStyle.FullScreenWindow) != 0;
+
+			}
+			set {
+				if (MacSystemInformation.OsVersion < MacSystemInformation.Lion)
+					return;
+
+				if (value != ((StyleMask & NSWindowStyle.FullScreenWindow) != 0)) {
+					//HACK: workaround for MonoMac not allowing null as argument
+					MonoMac.ObjCRuntime.Messaging.void_objc_msgSend_IntPtr (
+						Handle,
+						MonoMac.ObjCRuntime.Selector.GetHandle ("toggleFullScreen:"),
+						IntPtr.Zero);
+				}			
+			}
+		}
+
+		object IWindowFrameBackend.Screen {
+			get {
+				return Screen;
+			}
+		}
+
+		protected virtual NSView GetContentView ()
+		{
+			return ContentView;
+		}
 		
 		#region IWindowBackend implementation
 		void IBackend.EnableEvent (object eventId)
@@ -123,6 +174,7 @@ namespace Xwt.Mac
 				switch (@event) {
 					case WindowFrameEvent.BoundsChanged:
 						DidResize += HandleDidResize;
+						DidMoved += HandleDidResize;
 						break;
 					case WindowFrameEvent.Hidden:
 						EnableVisibilityEvent (@event);
@@ -175,14 +227,14 @@ namespace Xwt.Mac
 		}
 
 		void OnHidden () {
-			Toolkit.Invoke (delegate ()
+			ApplicationContext.InvokeUserCode (delegate ()
 			{
 				eventSink.OnHidden ();
 			});
 		}
 
 		void OnShown () {
-			Toolkit.Invoke (delegate ()
+			ApplicationContext.InvokeUserCode (delegate ()
 			{
 				eventSink.OnShown ();
 			});
@@ -205,6 +257,7 @@ namespace Xwt.Mac
 				switch (@event) {
 					case WindowFrameEvent.BoundsChanged:
 						DidResize -= HandleDidResize;
+						DidMoved -= HandleDidResize;
 						break;
 					case WindowFrameEvent.Hidden:
 						this.WillClose -= OnWillClose;
@@ -219,21 +272,31 @@ namespace Xwt.Mac
 
 		void HandleDidResize (object sender, EventArgs e)
 		{
-			Toolkit.Invoke (delegate {
+			OnBoundsChanged ();
+		}
+
+		protected virtual void OnBoundsChanged ()
+		{
+			ApplicationContext.InvokeUserCode (delegate {
 				eventSink.OnBoundsChanged (((IWindowBackend)this).Bounds);
 			});
 		}
 
 		void IWindowBackend.SetChild (IWidgetBackend child)
 		{
+			SetChild (child);
+		}
+
+		protected virtual void SetChild (IWidgetBackend child)
+		{
 			if (this.child != null) {
-				this.child.View.RemoveFromSuperview ();
+				this.child.Widget.RemoveFromSuperview ();
 			}
-			this.child = (IMacViewBackend) child;
+			this.child = (ViewBackend) child;
 			if (child != null) {
-				ContentView.AddSubview (this.child.View);
+				GetContentView ().AddSubview (this.child.Widget);
 				SetPadding (frontend.Padding.Left, frontend.Padding.Top, frontend.Padding.Right, frontend.Padding.Bottom);
-				this.child.View.AutoresizingMask = NSViewResizingMask.HeightSizable | NSViewResizingMask.WidthSizable;
+				this.child.Widget.AutoresizingMask = NSViewResizingMask.HeightSizable | NSViewResizingMask.WidthSizable;
 			}
 		}
 		
@@ -262,16 +325,28 @@ namespace Xwt.Mac
 			// Generally, TransientFor is used to implement dialog, we reproduce the assumption here
 			Level = window == null ? NSWindowLevel.Normal : NSWindowLevel.ModalPanel;
 		}
+
+		bool IWindowFrameBackend.Resizable {
+			get {
+				return (StyleMask & NSWindowStyle.Resizable) != 0;
+			}
+			set {
+				if (value)
+					StyleMask |= NSWindowStyle.Resizable;
+				else
+					StyleMask &= ~NSWindowStyle.Resizable;
+			}
+		}
 		
 		public void SetPadding (double left, double top, double right, double bottom)
 		{
 			if (child != null) {
-				var frame = ContentView.Frame;
+				var frame = GetContentView ().Frame;
 				frame.X += (float) left;
 				frame.Width -= (float) (left + right);
 				frame.Y += (float) top;
 				frame.Height -= (float) (top + bottom);
-				child.View.Frame = frame;
+				child.Widget.Frame = frame;
 			}
 		}
 
@@ -290,12 +365,14 @@ namespace Xwt.Mac
 		
 		Rectangle IWindowFrameBackend.Bounds {
 			get {
-				var r = ContentRectFor (Frame);
+				var b = ContentRectFor (Frame);
+				var r = MacDesktopBackend.ToDesktopRect (b);
 				return new Rectangle ((int)r.X, (int)r.Y, (int)r.Width, (int)r.Height);
 			}
 			set {
-				var r = FrameRectFor (new System.Drawing.RectangleF ((float)value.X, (float)value.Y, (float)value.Width, (float)value.Height));
-				SetFrame (r, true);
+				var r = MacDesktopBackend.FromDesktopRect (value);
+				var fr = FrameRectFor (r);
+				SetFrame (fr, true);
 			}
 		}
 		
@@ -330,12 +407,27 @@ namespace Xwt.Mac
 		{
 		}
 		
-		public void SetMinSize (Size s)
+		public virtual void SetMinSize (Size s)
+		{
+			var b = ((IWindowBackend)this).Bounds;
+			if (b.Size.Width < s.Width)
+				b.Width = s.Width;
+			if (b.Size.Height < s.Height)
+				b.Height = s.Height;
+
+			if (b != ((IWindowBackend)this).Bounds)
+				((IWindowBackend)this).Bounds = b;
+
+		    var r = FrameRectFor (new RectangleF (0, 0, (float)s.Width, (float)s.Height));
+			MinSize = r.Size;
+		}
+
+		public void SetIcon (ImageDescription icon)
 		{
 		}
 
-		public void SetIcon (object imageBackend)
-		{
+		public virtual Size ImplicitMinSize {
+			get { return new Size (0,0); }
 		}
 	}
 	

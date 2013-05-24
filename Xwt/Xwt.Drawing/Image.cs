@@ -26,128 +26,327 @@
 
 using System;
 using Xwt.Backends;
-using Xwt.Engine;
+
 using System.Reflection;
 using System.IO;
+using System.Collections.Generic;
 
 namespace Xwt.Drawing
 {
-	public sealed class Image: XwtObject, IDisposable
+	public class Image: XwtObject, IDisposable
 	{
-		static ImageBackendHandler handler;
-		
-		static Image ()
+		Size requestedSize;
+		internal NativeImageRef NativeRef;
+		internal double requestedAlpha = 1;
+
+		internal Image ()
 		{
-			handler = WidgetRegistry.CreateSharedBackend<ImageBackendHandler> (typeof(Image));
-		}
-		
-		protected override IBackendHandler BackendHandler {
-			get {
-				return handler;
-			}
 		}
 		
 		internal Image (object backend): base (backend)
 		{
+			Init ();
 		}
 		
-		public Image (Image image): base (handler.Copy (image.Backend))
+		internal Image (object backend, Toolkit toolkit): base (backend, toolkit)
 		{
+			Init ();
 		}
 		
+		public Image (Image image): base (image.Backend, image.ToolkitEngine)
+		{
+			NativeRef = image.NativeRef;
+			Init ();
+		}
+
+		internal void Init ()
+		{
+			if (NativeRef == null) {
+				NativeRef = new NativeImageRef (Backend, ToolkitEngine);
+			} else
+				NativeRef.AddReference ();
+		}
+		
+		~Image ()
+		{
+			Dispose (false);
+		}
+
+		public void Dispose ()
+		{
+			Dispose (true);
+			GC.SuppressFinalize (this);
+		}
+
+		protected virtual void Dispose (bool disposing)
+		{
+			if (NativeRef != null)
+				NativeRef.ReleaseReference (disposing);
+		}
+
+
+		internal ImageDescription ImageDescription {
+			get {
+				return new ImageDescription () {
+					Alpha = requestedAlpha,
+					Size = Size,
+					Backend = Backend
+				};
+			}
+		}
+
 		public static Image FromResource (Type type, string resource)
 		{
-			var img = handler.LoadFromResource (type.Assembly, resource);
-			if (img == null)
-				throw new InvalidOperationException ("Resource not found: " + resource);
-			return new Image (img);
+			if (type == null)
+				throw new ArgumentNullException ("type");
+			if (resource == null)
+				throw new ArgumentNullException ("resource");
+
+			return FromResource (type.Assembly, resource);
 		}
 		
-		public static Image FromResource (Assembly asm, string resource)
+		public static Image FromResource (Assembly assembly, string resource)
 		{
-			var img = handler.LoadFromResource (asm, resource);
+			if (assembly == null)
+				throw new ArgumentNullException ("assembly");
+			if (resource == null)
+				throw new ArgumentNullException ("resource");
+			
+			var toolkit = Toolkit.CurrentEngine;
+
+			var name = Path.GetFileNameWithoutExtension (resource);
+
+			var img = toolkit.ImageBackendHandler.LoadFromResource (assembly, resource);
 			if (img == null)
 				throw new InvalidOperationException ("Resource not found: " + resource);
-			return new Image (img);
+
+			List<object> altImages = new List<object> ();
+			foreach (var r in assembly.GetManifestResourceNames ()) {
+				int i = r.LastIndexOf ('@');
+				if (i != -1) {
+					string rname = r.Substring (0, i);
+					if (rname == resource || rname == name) {
+						var rim = toolkit.ImageBackendHandler.LoadFromResource (assembly, r);
+						if (rim != null)
+							altImages.Add (rim);
+					}
+				}
+			}
+			if (altImages.Count > 0) {
+				altImages.Insert (0, img);
+				img = toolkit.ImageBackendHandler.CreateMultiSizeImage (altImages);
+			}
+			return new Image (img, toolkit);
 		}
 		
 		public static Image FromFile (string file)
 		{
-			return new Image (handler.LoadFromFile (file));
+			var toolkit = Toolkit.CurrentEngine;
+			return new Image (toolkit.ImageBackendHandler.LoadFromFile (file), toolkit);
 		}
 		
 		public static Image FromStream (Stream stream)
 		{
-			return new Image (handler.LoadFromStream (stream));
+			var toolkit = Toolkit.CurrentEngine;
+			return new Image (toolkit.ImageBackendHandler.LoadFromStream (stream), toolkit);
 		}
 		
-		public static Image FromIcon (string id, IconSize size)
+		public void Save (string file, ImageFileType fileType)
 		{
-			return new Image (handler.LoadFromIcon (id, size));
+			using (var f = File.OpenWrite (file))
+				Save (f, fileType);
+		}
+
+		public void Save (Stream stream, ImageFileType fileType)
+		{
+			ToolkitEngine.ImageBackendHandler.SaveToStream (ToBitmap ().Backend, stream, fileType);
 		}
 		
+		public bool HasFixedSize {
+			get { return !Size.IsZero; }
+		}
+
 		public Size Size {
-			get { return handler.GetSize (Backend); }
+			get {
+				if (!requestedSize.IsZero)
+					return requestedSize;
+				if (!ToolkitEngine.ImageBackendHandler.HasMultipleSizes (Backend))
+					return ToolkitEngine.ImageBackendHandler.GetSize (Backend);
+				else
+					return Size.Zero;
+			}
+			internal set {
+				requestedSize = value;
+			}
 		}
 		
-		public void SetPixel (int x, int y, Color color)
+		public Image WithAlpha (double alpha)
 		{
-			handler.SetPixel (Backend, x, y, color);
+			return new Image (this) {
+				requestedSize = requestedSize,
+				requestedAlpha = alpha
+			};
 		}
 		
-		public Color GetPixel (int x, int y)
+		public Image WithSize (double width, double height)
 		{
-			return handler.GetPixel (Backend, x, y);
+			return new Image (this) {
+				requestedSize = new Size (width, height)
+			};
+		}
+		
+		public Image WithSize (Size size)
+		{
+			return new Image (this) {
+				requestedSize = size
+			};
+		}
+		
+		public Image WithSize (double squaredSize)
+		{
+			return new Image (this) {
+				requestedSize = new Size (squaredSize, squaredSize)
+			};
+		}
+		
+		public Image WithSize (IconSize size)
+		{
+			Size s;
+
+			switch (size) {
+			case IconSize.Small: s = new Size (16, 16); break;
+			case IconSize.Medium: s = new Size (24, 24); break;
+			case IconSize.Large: s = new Size (32, 32); break;
+			default: throw new ArgumentOutOfRangeException ("size");
+			}
+
+			return new Image (this) {
+				requestedSize = s
+			};
+		}
+
+		Size DefaultSize {
+			get {
+				if (!requestedSize.IsZero)
+					return requestedSize;
+				else
+					return GetDefaultSize ();
+			}
+		}
+
+		internal Size GetFixedSize ()
+		{
+			var size = !Size.IsZero ? Size : DefaultSize;
+			if (size.IsZero)
+				throw new InvalidOperationException ("Image size has not been set and the image doesn't have a default size");
+			return size;
+		}
+		
+		public Image WithBoxSize (double maxWidth, double maxHeight)
+		{
+			var size = GetFixedSize ();
+			var ratio = Math.Min (maxWidth / size.Width, maxHeight / size.Height);
+
+			return new Image (this) {
+				requestedSize = new Size (size.Width * ratio, size.Height * ratio)
+			};
+		}
+		
+		public Image WithBoxSize (double maxSize)
+		{
+			return WithBoxSize (maxSize, maxSize);
+		}
+		
+		public Image WithBoxSize (Size size)
+		{
+			return WithBoxSize (size.Width, size.Height);
 		}
 		
 		public Image Scale (double scale)
 		{
+			if (!HasFixedSize)
+				throw new InvalidOperationException ("Image must have a size in order to be scaled");
+			
 			double w = Size.Width * scale;
 			double h = Size.Height * scale;
-			return new Image (handler.Resize (Backend, w, h));
+			return new Image (this) {
+				requestedSize = new Size (w, h)
+			};
 		}
 		
 		public Image Scale (double scaleX, double scaleY)
 		{
+			if (!HasFixedSize)
+				throw new InvalidOperationException ("Image must have a size in order to be scaled");
+
 			double w = Size.Width * scaleX;
 			double h = Size.Height * scaleY;
-			return new Image (handler.Resize (Backend, w, h));
+			return new Image (this) {
+				requestedSize = new Size (w, h)
+			};
 		}
-		
-		public Image Resize (double width, double height)
+
+		public BitmapImage ToBitmap (ImageFormat format = ImageFormat.ARGB32)
 		{
-			return new Image (handler.Resize (Backend, width, height));
+			var s = GetFixedSize ();
+			return ToBitmap ((int)s.Width, (int)s.Height);
 		}
-		
-		public Image ResizeToFitBox (double width, double height)
+
+		public BitmapImage ToBitmap (Widget renderTarget, ImageFormat format = ImageFormat.ARGB32)
 		{
-			double r = Math.Min (width / Size.Width, height / Size.Height);
-			return new Image (handler.Resize (Backend, Size.Width * r, Size.Height * r));
+			if (renderTarget.ParentWindow == null)
+				throw new InvalidOperationException ("renderTarget is not bounds to a window");
+			return ToBitmap (renderTarget.ParentWindow, format);
 		}
-		
-		public Image ToGrayscale ()
+
+		public BitmapImage ToBitmap (WindowFrame renderTarget, ImageFormat format = ImageFormat.ARGB32)
 		{
-			throw new NotImplementedException ();
+			return ToBitmap (renderTarget.Screen, format);
 		}
-		
-		public Image ChangeOpacity (double opacity)
+
+		public BitmapImage ToBitmap (Screen renderTarget, ImageFormat format = ImageFormat.ARGB32)
 		{
-			return new Image (handler.ChangeOpacity (Backend, opacity));
+			var s = GetFixedSize ();
+			return ToBitmap ((int)(s.Width * renderTarget.ScaleFactor), (int)(s.Height * renderTarget.ScaleFactor), format);
 		}
-		
-		public void CopyArea (int srcX, int srcY, int width, int height, Image dest, int destX, int destY)
+
+		public BitmapImage ToBitmap (int pixelWidth, int pixelHeight, ImageFormat format = ImageFormat.ARGB32)
 		{
-			handler.CopyArea (Backend, srcX, srcY, width, height, dest.Backend, destX, destY);
+			var bmp = ToolkitEngine.ImageBackendHandler.ConvertToBitmap (Backend, pixelWidth, pixelHeight, format);
+			return new BitmapImage (bmp);
 		}
-		
-		public Image Crop (int srcX, int srcY, int width, int height)
+
+		protected virtual Size GetDefaultSize ()
 		{
-			return new Image (handler.Crop (Backend, srcX, srcY, width, height));
+			return ToolkitEngine.ImageBackendHandler.GetSize (Backend);
 		}
-		
-		public void Dispose ()
+	}
+
+	class NativeImageRef
+	{
+		object backend;
+		int referenceCount = 1;
+		Toolkit toolkit;
+
+		public int ReferenceCount {
+			get { return referenceCount; }
+		}
+
+		public NativeImageRef (object backend, Toolkit toolkit)
 		{
-			handler.Dispose (Backend);
+			this.backend = backend;
+			this.toolkit = toolkit;
+		}
+
+		public void AddReference ()
+		{
+			System.Threading.Interlocked.Increment (ref referenceCount);
+		}
+
+		public void ReleaseReference (bool disposing)
+		{
+			if (System.Threading.Interlocked.Decrement (ref referenceCount) == 0 && disposing)
+				toolkit.ImageBackendHandler.Dispose (backend);
 		}
 	}
 }

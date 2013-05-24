@@ -117,7 +117,17 @@ namespace Samples
 				if (dlg.Run ())
 					MessageDialog.ShowMessage ("Folders have been selected!", string.Join ("\n", dlg.Folders));
 			};
-			
+
+			b = new Button ("Show Select Folder dialog (Single select, allow creation)");
+			PackStart (b);
+			b.Clicked += delegate {
+				SelectFolderDialog dlg = new SelectFolderDialog ("Select or create a folder");
+				dlg.Multiselect = false;
+				dlg.CanCreateFolders = true;
+				if (dlg.Run ())
+					MessageDialog.ShowMessage ("Folders have been selected/created!", string.Join ("\n", dlg.Folders));
+			};
+
 			b = new Button ("Show Select Color dialog");
 			PackStart (b);
 			b.Clicked += delegate {
@@ -145,6 +155,19 @@ namespace Samples
 
 				w.Show();
 				
+			};
+
+			b = new Button("Show dialog with dynamically updating content");
+			PackStart(b);
+			b.Clicked += delegate
+			{
+				var dialog = new Dialog ();
+				dialog.Content = new Label ("Hello World");
+				Xwt.Application.TimeoutInvoke (TimeSpan.FromSeconds (2), () => {
+					dialog.Content = new Label ("Goodbye World");
+					return false;
+				});
+				dialog.Run ();
 			};
 		}
 	}

@@ -37,6 +37,10 @@ namespace Xwt.Mac
 	{
 		TextCellView cellView;
 		
+		public TextTableCell ()
+		{
+		}
+		
 		public TextTableCell (IntPtr p): base (p)
 		{
 		}
@@ -46,9 +50,16 @@ namespace Xwt.Mac
 			this.cellView = cellView;
 		}
 		
-		public void Fill (ICellSource source, object pos)
+		public void Fill (ICellDataSource source)
 		{
-			StringValue = (string) source.GetValue (pos, cellView.TextField.Index) ?? "";
+			cellView.Initialize (source);
+			StringValue = cellView.Text ?? "";
+		}
+
+		public void CopyFrom (object other)
+		{
+			var ob = (TextTableCell)other;
+			cellView = ob.cellView;
 		}
 	}
 }

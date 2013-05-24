@@ -42,26 +42,34 @@ namespace Samples
 		void HandleClicked (object sender, EventArgs e)
 		{
 			if (popover == null) {
-				popover = new Popover (ParentWindow, Popover.Position.Top);
-				popover.ChildSource = delegate {
-					var table = new Table () { DefaultColumnSpacing = 20, DefaultRowSpacing = 10 };
-					table.Attach (new Label ("Font") { TextAlignment = Alignment.End }, 0, 0);
-					table.Attach (new ComboBox (), 1, 0, AttachOptions.Fill, AttachOptions.Fill | AttachOptions.Expand);
+				popover = new Popover ();
 
-					table.Attach (new Label ("Family")  { TextAlignment = Alignment.End }, 0, 1);
-					table.Attach (new ComboBox (), 1, 1, AttachOptions.Fill, AttachOptions.Fill | AttachOptions.Expand);
+				var table = new Table () { DefaultColumnSpacing = 20, DefaultRowSpacing = 10 };
+//					table.Margin.SetAll (60);
+				table.Attach (new Label ("Font") { TextAlignment = Alignment.End }, 0, 0);
+				table.Attach (new ComboBox (), 1, 0, AttachOptions.Fill, AttachOptions.Fill | AttachOptions.Expand);
 
-					table.Attach (new Label ("Style")  { TextAlignment = Alignment.End }, 0, 2);
-					table.Attach (new ComboBox (), 1, 2, AttachOptions.Fill, AttachOptions.Fill | AttachOptions.Expand);
+				table.Attach (new Label ("Family")  { TextAlignment = Alignment.End }, 0, 1);
+				table.Attach (new ComboBox (), 1, 1, AttachOptions.Fill, AttachOptions.Fill | AttachOptions.Expand);
 
-					table.Attach (new Label ("Size")  { TextAlignment = Alignment.End }, 0, 3);
-					table.Attach (new SpinButton (), 1, 3, AttachOptions.Fill, AttachOptions.Fill | AttachOptions.Expand);
+				table.Attach (new Label ("Style")  { TextAlignment = Alignment.End }, 0, 2);
+				table.Attach (new ComboBox (), 1, 2, AttachOptions.Fill, AttachOptions.Fill | AttachOptions.Expand);
 
-					return table;
+				table.Attach (new Label ("Size")  { TextAlignment = Alignment.End }, 0, 3);
+				table.Attach (new SpinButton (), 1, 3, AttachOptions.Fill, AttachOptions.Fill | AttachOptions.Expand);
+
+				var b = new Button ("Add more");
+				table.Attach (b, 0, 4);
+				int next = 5;
+				b.Clicked += delegate {
+					table.Attach (new Label ("Row " + next), 0, next++);
 				};
-			}
 
-			popover.Run ((Button)sender);
+				table.Margin = 20;
+				popover.Content = table;
+			}
+//			popover.Padding.SetAll (20);
+			popover.Show (Popover.Position.Top, (Button)sender);
 		}
 	}
 }

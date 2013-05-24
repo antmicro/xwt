@@ -26,7 +26,7 @@
 using System;
 using Xwt.Backends;
 using MonoMac.AppKit;
-using Xwt.Engine;
+
 
 namespace Xwt.Mac
 {
@@ -47,8 +47,7 @@ namespace Xwt.Mac
 			if (ViewObject is MacComboBox) {
 				((MacComboBox)ViewObject).SetEntryEventSink (EventSink);
 			} else {
-				ViewObject = new CustomTextField (EventSink);
-				Widget.SizeToFit ();
+				ViewObject = new CustomTextField (EventSink, ApplicationContext);
 			}
 		}
 		
@@ -65,6 +64,15 @@ namespace Xwt.Mac
 			}
 			set {
 				Widget.StringValue = value;
+			}
+		}
+
+		public Alignment TextAlignment {
+			get {
+				return Widget.Alignment.ToAlignment ();
+			}
+			set {
+				Widget.Alignment = value.ToNSTextAlignment ();
 			}
 		}
 
@@ -94,15 +102,22 @@ namespace Xwt.Mac
 				((NSTextFieldCell) Widget.Cell).PlaceholderString = value;
 			}
 		}
+
+		public override void SetFocus ()
+		{
+			Widget.BecomeFirstResponder ();
+		}
 		#endregion
 	}
 	
 	class CustomTextField: NSTextField, IViewObject
 	{
 		ITextEntryEventSink eventSink;
+		ApplicationContext context;
 		
-		public CustomTextField (ITextEntryEventSink eventSink)
+		public CustomTextField (ITextEntryEventSink eventSink, ApplicationContext context)
 		{
+			this.context = context;
 			this.eventSink = eventSink;
 		}
 		
@@ -112,12 +127,12 @@ namespace Xwt.Mac
 			}
 		}
 
-		public Widget Frontend { get; set; }
+		public ViewBackend Backend { get; set; }
 		
 		public override void DidChange (MonoMac.Foundation.NSNotification notification)
 		{
 			base.DidChange (notification);
-			Toolkit.Invoke (delegate {
+			context.InvokeUserCode (delegate {
 				eventSink.OnChanged ();
 			});
 		}

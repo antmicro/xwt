@@ -28,7 +28,7 @@ using System;
 using MonoMac.AppKit;
 using Xwt.Backends;
 using System.Collections.Generic;
-using Xwt.Engine;
+
 
 namespace Xwt.Mac
 {
@@ -86,7 +86,7 @@ namespace Xwt.Mac
 		
 		public void UpdateLabel (NotebookTab tab, string hint)
 		{
-			IWidgetBackend widget = (IWidgetBackend) WidgetRegistry.GetBackend (tab.Child);
+			IWidgetBackend widget = (IWidgetBackend) Toolkit.GetBackend (tab.Child);
 			var v = GetWidget (widget);
 			var t = FindTab (v);
 			if (t != null)
@@ -148,7 +148,7 @@ namespace Xwt.Mac
 	
 	class TabView: NSTabView, IViewObject
 	{
-		public Widget Frontend { get; set; }
+		public ViewBackend Backend { get; set; }
 		public NSView View {
 			get { return this; }
 		}

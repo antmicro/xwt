@@ -32,6 +32,7 @@ using MonoMac.Foundation;
 using MonoMac.AppKit;
 using MonoMac.ObjCRuntime;
 
+
 namespace Xwt.Mac
 {
 	public class PopoverBackend : IPopoverBackend
@@ -41,13 +42,12 @@ namespace Xwt.Mac
 
 		class FactoryViewController : NSViewController
 		{
-			Func<Xwt.Widget> childCreator;
-			NSView view;
 			Xwt.Widget child;
-			
-			public FactoryViewController (Func<Xwt.Widget> childCreator) : base (null, null)
+			NSView view;
+
+			public FactoryViewController (Xwt.Widget child) : base (null, null)
 			{
-				this.childCreator = childCreator;
+				this.child = child;
 			}
 
 			// Called when created from unmanaged code
@@ -63,9 +63,8 @@ namespace Xwt.Mac
 			
 			public override void LoadView ()
 			{
-				child = childCreator ();
-				var backend = (IMacViewBackend)Xwt.Engine.WidgetRegistry.GetBackend (child);
-				view = ((IWidgetBackend)backend).NativeWidget as NSView;
+				var backend = (ViewBackend)Toolkit.GetBackend (child);
+				view = ((ViewBackend)backend).NativeWidget as NSView;
 				ForceChildLayout ();
 				backend.SetAutosizeMode (true);
 				// FIXME: unset when the popover is closed
@@ -90,17 +89,41 @@ namespace Xwt.Mac
 			}
 		}
 
-		public void Run (Xwt.WindowFrame parent, Xwt.Popover.Position orientation, Func<Xwt.Widget> childSource, Xwt.Widget referenceWidget)
+		IPopoverEventSink sink;
+		
+		public void Initialize (IPopoverEventSink sink)
 		{
-			var controller = new FactoryViewController (childSource);
+			this.sink = sink;
+		}
+
+		public void InitializeBackend (object frontend, ApplicationContext context)
+		{
+		}
+
+		public void EnableEvent (object eventId)
+		{
+		}
+
+		public void DisableEvent (object eventId)
+		{
+		}
+
+		public void Show (Xwt.Popover.Position orientation, Xwt.Widget referenceWidget, Xwt.Rectangle positionRect, Xwt.Widget child)
+		{
+			var controller = new FactoryViewController (child);
 			popover = new NSPopover ();
 			popover.Behavior = NSPopoverBehavior.Transient;
 			popover.ContentViewController = controller;
-			IMacViewBackend backend = (IMacViewBackend)Xwt.Engine.WidgetRegistry.GetBackend (referenceWidget);
-			var reference = backend.View;
+			ViewBackend backend = (ViewBackend)Toolkit.GetBackend (referenceWidget);
+			var reference = backend.Widget;
 			popover.Show (System.Drawing.RectangleF.Empty,
 			              reference,
 			              ToRectEdge (orientation));
+		}
+
+		public void Hide ()
+		{
+			popover.Close ();
 		}
 		
 		NSRectEdge ToRectEdge (Xwt.Popover.Position pos)
