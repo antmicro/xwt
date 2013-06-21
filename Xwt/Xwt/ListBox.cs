@@ -102,6 +102,8 @@ namespace Xwt
 				if (itemCollection == null) {
 					itemCollection = new ItemCollection ();
 					DataSource = itemCollection.DataSource;
+					views.Clear ();
+					views.Add (new TextCellView (itemCollection.LabelField));
 				} else {
 					if (DataSource != itemCollection.DataSource)
 						throw new InvalidOperationException ("The Items collection can't be used when a custom DataSource is set");
@@ -285,12 +287,12 @@ namespace Xwt
 		/// </summary>
 		public event EventHandler SelectionChanged {
 			add {
-				BackendHost.OnBeforeEventAdd (ListBoxEvent.SelectionChanged, selectionChanged);
+				BackendHost.OnBeforeEventAdd (TableViewEvent.SelectionChanged, selectionChanged);
 				selectionChanged += value;
 			}
 			remove {
 				selectionChanged -= value;
-				BackendHost.OnAfterEventRemove (ListBoxEvent.SelectionChanged, selectionChanged);
+				BackendHost.OnAfterEventRemove (TableViewEvent.SelectionChanged, selectionChanged);
 			}
 		}
 		

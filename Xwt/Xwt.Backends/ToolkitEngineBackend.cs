@@ -282,9 +282,14 @@ namespace Xwt.Backends
 		/// </remarks>
 		public abstract bool HasNativeParent (Widget w);
 
-		public static ImageDescription GetImageDescription (Image img)
+		/// <summary>
+		/// Renders a widget into a bitmap
+		/// </summary>
+		/// <param name="w">A widget</param>
+		/// <returns>An image backend</returns>
+		public virtual object RenderWidget (Widget w)
 		{
-			return img != null ? img.ImageDescription : ImageDescription.Null;
+			throw new NotSupportedException ();
 		}
 	}
 }

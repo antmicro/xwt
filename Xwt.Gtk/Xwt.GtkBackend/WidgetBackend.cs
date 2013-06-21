@@ -38,11 +38,12 @@ namespace Xwt.GtkBackend
 	{
 		Gtk.Widget widget;
 		Widget frontend;
-		Gtk.Alignment alignment;
 		Gtk.EventBox eventBox;
 		IWidgetEventSink eventSink;
 		WidgetEvent enabledEvents;
 		bool destroyed;
+		SizeConstraint currentWidthConstraint = SizeConstraint.Unconstrained;
+		SizeConstraint currentHeightConstraint = SizeConstraint.Unconstrained;
 
 		bool minSizeSet;
 		
@@ -61,8 +62,7 @@ namespace Xwt.GtkBackend
 		DragDropData dragDropInfo;
 
 		const WidgetEvent dragDropEvents = WidgetEvent.DragDropCheck | WidgetEvent.DragDrop | WidgetEvent.DragOver | WidgetEvent.DragOverCheck;
-		const WidgetEvent sizeCheckEvents = WidgetEvent.PreferredWidthCheck | WidgetEvent.PreferredHeightCheck | WidgetEvent.PreferredHeightForWidthCheck | WidgetEvent.PreferredWidthForHeightCheck;
-		
+
 		void IBackend.InitializeBackend (object frontend, ApplicationContext context)
 		{
 			this.frontend = (Widget) frontend;
@@ -111,7 +111,7 @@ namespace Xwt.GtkBackend
 		
 		public Gtk.Widget RootWidget {
 			get {
-				return alignment ?? eventBox ?? (Gtk.Widget) Widget;
+				return eventBox ?? (Gtk.Widget) Widget;
 			}
 		}
 		
@@ -119,8 +119,6 @@ namespace Xwt.GtkBackend
 			get { return Widget.Visible; }
 			set {
 				Widget.Visible = value; 
-				if (alignment != null)
-					alignment.Visible = value;
 				if (eventBox != null)
 					eventBox.Visible = value;
 			}
@@ -244,6 +242,12 @@ namespace Xwt.GtkBackend
 				return new Size (Widget.Allocation.Width, Widget.Allocation.Height);
 			}
 		}
+
+		public void SetSizeConstraints (SizeConstraint widthConstraint, SizeConstraint heightConstraint)
+		{
+			currentWidthConstraint = widthConstraint;
+			currentHeightConstraint = heightConstraint;
+		}
 		
 		DragDropData DragDropInfo {
 			get {
@@ -265,70 +269,18 @@ namespace Xwt.GtkBackend
 			return new Point (x + widgetCoordinates.X, y + widgetCoordinates.Y);
 		}
 		
-		public virtual WidgetSize GetPreferredWidth ()
+		public virtual Size GetPreferredSize (SizeConstraint widthConstraint, SizeConstraint heightConstraint)
 		{
-			bool oldFlag = doubleSizeRequestCheckSupported;
 			try {
+				SetSizeConstraints (widthConstraint, heightConstraint);
 				gettingPreferredSize = true;
-				doubleSizeRequestCheckSupported = false;
-				var s = new WidgetSize (Widget.SizeRequest ().Width);
-				if (minSizeSet && Frontend.MinWidth != -1)
-					s.MinSize = Frontend.MinWidth;
-				return s;
+				var sr = Widget.SizeRequest ();
+				return new Size (sr.Width, sr.Height);
 			} finally {
 				gettingPreferredSize = false;
-				doubleSizeRequestCheckSupported = oldFlag;
 			}
 		}
-		
-		public virtual WidgetSize GetPreferredHeight ()
-		{
-			bool oldFlag = doubleSizeRequestCheckSupported;
-			try {
-				gettingPreferredSize = true;
-				doubleSizeRequestCheckSupported = false;
-				var s = new WidgetSize (Widget.SizeRequest ().Height);
-				if (minSizeSet && Frontend.MinHeight != -1)
-					s.MinSize = Frontend.MinHeight;
-				return s;
-			} finally {
-				gettingPreferredSize = false;
-				doubleSizeRequestCheckSupported = oldFlag;
-			}
-		}
-		
-		public virtual WidgetSize GetPreferredHeightForWidth (double width)
-		{
-			bool oldFlag = doubleSizeRequestCheckSupported;
-			try {
-				gettingPreferredSize = true;
-				doubleSizeRequestCheckSupported = false;
-				var s = new WidgetSize (Widget.SizeRequest ().Height);
-				if (minSizeSet && Frontend.MinHeight != -1)
-					s.MinSize = Frontend.MinHeight;
-				return s;
-			} finally {
-				gettingPreferredSize = false;
-				doubleSizeRequestCheckSupported = oldFlag;
-			}
-		}
-		
-		public virtual WidgetSize GetPreferredWidthForHeight (double height)
-		{
-			bool oldFlag = doubleSizeRequestCheckSupported;
-			try {
-				gettingPreferredSize = true;
-				doubleSizeRequestCheckSupported = false;
-				var s = new WidgetSize (Widget.SizeRequest ().Width);
-				if (minSizeSet && Frontend.MinWidth != -1)
-					s.MinSize = Frontend.MinWidth;
-				return s;
-			} finally {
-				gettingPreferredSize = false;
-				doubleSizeRequestCheckSupported = oldFlag;
-			}
-		}
-		
+
 		public void SetMinSize (double width, double height)
 		{
 			if (width != -1 || height != -1) {
@@ -343,9 +295,10 @@ namespace Xwt.GtkBackend
 			}
 		}
 		
-		public void SetNaturalSize (double width, double height)
+		public void SetSizeRequest (double width, double height)
 		{
-			// Nothing to do
+			Widget.WidthRequest = (int)width;
+			Widget.HeightRequest = (int)height;
 		}
 		
 		Pango.FontDescription customFont;
@@ -390,28 +343,71 @@ namespace Xwt.GtkBackend
 		{
 			return w != null ? ((IGtkWidgetBackend)w).Widget : null;
 		}
+
+		public virtual void UpdateChildPlacement (IWidgetBackend childBackend)
+		{
+			SetChildPlacement (childBackend);
+		}
+
+		public static Gtk.Widget GetWidgetWithPlacement (IWidgetBackend childBackend)
+		{
+			var backend = (WidgetBackend)childBackend;
+			var child = backend.RootWidget;
+			var wrapper = child.Parent as WidgetPlacementWrapper;
+			if (wrapper != null)
+				return wrapper;
+
+			if (!NeedsAlignmentWrapper (backend.Frontend))
+				return child;
+
+			wrapper = new WidgetPlacementWrapper ();
+			wrapper.UpdatePlacement (backend.Frontend);
+			wrapper.Show ();
+			wrapper.Add (child);
+			return wrapper;
+		}
+
+		public static void RemoveChildPlacement (Gtk.Widget w)
+		{
+			if (w == null)
+				return;
+			if (w is WidgetPlacementWrapper) {
+				var wp = (WidgetPlacementWrapper)w;
+				wp.Remove (wp.Child);
+			}
+		}
+
+		static bool NeedsAlignmentWrapper (Widget fw)
+		{
+			return fw.HorizontalPlacement != WidgetPlacement.Fill || fw.VerticalPlacement != WidgetPlacement.Fill || fw.Margin.VerticalSpacing != 0 || fw.Margin.HorizontalSpacing != 0;
+		}
+
+		public static void SetChildPlacement (IWidgetBackend childBackend)
+		{
+			var backend = (WidgetBackend)childBackend;
+			var child = backend.RootWidget;
+			var wrapper = child.Parent as WidgetPlacementWrapper;
+			var fw = backend.Frontend;
+
+			if (!NeedsAlignmentWrapper (fw)) {
+				if (wrapper != null) {
+					wrapper.Remove (child);
+					GtkEngine.ReplaceChild (wrapper, child);
+				}
+				return;
+			}
+
+			if (wrapper == null) {
+				wrapper = new WidgetPlacementWrapper ();
+				wrapper.Show ();
+				GtkEngine.ReplaceChild (child, wrapper);
+				wrapper.Add (child);
+			}
+			wrapper.UpdatePlacement (fw);
+		}
 		
 		public virtual void UpdateLayout ()
 		{
-			if (frontend.Margin.HorizontalSpacing == 0 && frontend.Margin.VerticalSpacing == 0) {
-				if (alignment != null) {
-					alignment.Remove (alignment.Child);
-					GtkEngine.ReplaceChild (alignment, EventsRootWidget);
-					alignment.Destroy ();
-					alignment = null;
-				}
-			} else {
-				if (alignment == null) {
-					alignment = new Gtk.Alignment (0, 0, 1, 1);
-					GtkEngine.ReplaceChild (EventsRootWidget, alignment);
-					alignment.Add (EventsRootWidget);
-					alignment.Visible = Widget.Visible;
-				}
-				alignment.LeftPadding = (uint) frontend.Margin.Left;
-				alignment.RightPadding = (uint) frontend.Margin.Right;
-				alignment.TopPadding = (uint) frontend.Margin.Top;
-				alignment.BottomPadding = (uint) frontend.Margin.Bottom;
-			}
 			Widget.QueueResize ();
 
 			if (!Widget.IsRealized) {
@@ -435,11 +431,7 @@ namespace Xwt.GtkBackend
 				eventBox.Visible = Widget.Visible;
 				eventBox.Sensitive = Widget.Sensitive;
 				eventBox.VisibleWindow = visibleWindow;
-				if (alignment != null) {
-					alignment.Remove (alignment.Child);
-					alignment.Add (eventBox);
-				} else
-					GtkEngine.ReplaceChild (Widget, eventBox);
+				GtkEngine.ReplaceChild (Widget, eventBox);
 				eventBox.Add (Widget);
 			}
 		}
@@ -512,7 +504,7 @@ namespace Xwt.GtkBackend
 					EventsRootWidget.DragMotion += HandleWidgetDragMotion;
 					EventsRootWidget.DragDataReceived += HandleWidgetDragDataReceived;
 				}
-				if ((ev & sizeCheckEvents) != 0) {
+				if ((ev & WidgetEvent.PreferredSizeCheck) != 0) {
 					EnableSizeCheckEvents ();
 				}
 				enabledEvents |= ev;
@@ -521,10 +513,9 @@ namespace Xwt.GtkBackend
 
 		void EnableSizeCheckEvents ()
 		{
-			if ((enabledEvents & sizeCheckEvents) == 0 && !minSizeSet) {
+			if ((enabledEvents & WidgetEvent.PreferredSizeCheck) == 0 && !minSizeSet) {
 				// Enabling a size request event for the first time
 				Widget.SizeRequested += HandleWidgetSizeRequested;
-				Widget.SizeAllocated += HandleWidgetSizeAllocated;;
 			}
 		}
 		
@@ -590,7 +581,7 @@ namespace Xwt.GtkBackend
 					EventsRootWidget.DragMotion -= HandleWidgetDragMotion;
 					EventsRootWidget.DragDataReceived -= HandleWidgetDragDataReceived;
 				}
-				if ((ev & sizeCheckEvents) != 0) {
+				if ((ev & WidgetEvent.PreferredSizeCheck) != 0) {
 					DisableSizeCheckEvents ();
 				}
 				if ((ev & WidgetEvent.GotFocus) == 0 && (enabledEvents & WidgetEvent.LostFocus) == 0 && !EventsRootWidget.IsRealized) {
@@ -601,10 +592,9 @@ namespace Xwt.GtkBackend
 		
 		void DisableSizeCheckEvents ()
 		{
-			if ((enabledEvents & sizeCheckEvents) == 0 && !minSizeSet) {
+			if ((enabledEvents & WidgetEvent.PreferredSizeCheck) == 0 && !minSizeSet) {
 				// All size request events have been disabled
 				Widget.SizeRequested -= HandleWidgetSizeRequested;
-				Widget.SizeAllocated -= HandleWidgetSizeAllocated;;
 			}
 		}
 
@@ -619,121 +609,31 @@ namespace Xwt.GtkBackend
 			}
 		}
 		
-		enum SizeCheckStep
-		{
-			SizeRequest,
-			PreAllocate,
-			AdjustSize,
-			FinalAllocate
-		}
-		
-		SizeCheckStep sizeCheckStep = SizeCheckStep.SizeRequest;
-		int realRequestedWidth;
-		int realRequestedHeight;
 		bool gettingPreferredSize;
-		static bool doubleSizeRequestCheckSupported = true;
-		
-		public bool IsPreallocating {
-			get { return sizeCheckStep == SizeCheckStep.AdjustSize || sizeCheckStep == SizeCheckStep.PreAllocate; }
-		}
 
 		void HandleWidgetSizeRequested (object o, Gtk.SizeRequestedArgs args)
 		{
-			if (gettingPreferredSize)
-				return;
-			
 			var req = args.Requisition;
-			
-			if ((enabledEvents & sizeCheckEvents) == 0) {
-				// If no sizing event is set, it means this handler was set because there is a min size.
-				if (Frontend.MinWidth != -1)
-					req.Width = (int) Frontend.MinWidth;
-				if (Frontend.MinHeight != -1)
-					req.Height = (int) Frontend.MinHeight;
-				args.Requisition = req;
-				return;
-			}
-			
-			if (sizeCheckStep == SizeCheckStep.AdjustSize) {
-				req.Width = realRequestedWidth;
-				req.Height = realRequestedHeight;
-				sizeCheckStep = SizeCheckStep.FinalAllocate;
-			}
-			else {
+
+			if (!gettingPreferredSize && (enabledEvents & WidgetEvent.PreferredSizeCheck) != 0) {
+				SizeConstraint wc = SizeConstraint.Unconstrained, hc = SizeConstraint.Unconstrained;
+				var cp = Widget.Parent as IConstraintProvider;
+				if (cp != null)
+					cp.GetConstraints (Widget, out wc, out hc);
+
 				ApplicationContext.InvokeUserCode (delegate {
-					if (EventSink.GetSizeRequestMode () == SizeRequestMode.HeightForWidth) {
-						if ((enabledEvents & WidgetEvent.PreferredWidthCheck) != 0) {
-						    var w = eventSink.OnGetPreferredWidth ();
-							req.Width = (int) w.MinSize;
-						}
-						if ((enabledEvents & WidgetEvent.PreferredHeightForWidthCheck) != 0) {
-							if (doubleSizeRequestCheckSupported) {
-								sizeCheckStep = SizeCheckStep.PreAllocate;
-								realRequestedWidth = req.Width; // Store the width, since it will be used in the next iteration
-							} else {
-								var h = eventSink.OnGetPreferredHeightForWidth (req.Width);
-								req.Height = (int) h.MinSize;
-								sizeCheckStep = SizeCheckStep.FinalAllocate;
-							}
-						}
-						else if ((enabledEvents & WidgetEvent.PreferredHeightCheck) != 0) {
-							var h = eventSink.OnGetPreferredHeight ();
-							req.Height = (int) h.MinSize;
-							sizeCheckStep = SizeCheckStep.FinalAllocate;
-						}
-					} else {
-						if ((enabledEvents & WidgetEvent.PreferredHeightCheck) != 0) {
-							var h = eventSink.OnGetPreferredHeight ();
-							req.Height = (int) h.MinSize;
-						}
-						if ((enabledEvents & WidgetEvent.PreferredWidthForHeightCheck) != 0) {
-							if (doubleSizeRequestCheckSupported) {
-								sizeCheckStep = SizeCheckStep.PreAllocate;
-								realRequestedHeight = req.Height; // Store the height, since it will be used in the next iteration
-							} else {
-								var w = eventSink.OnGetPreferredWidthForHeight (req.Height);
-								req.Width = (int) w.MinSize;
-								sizeCheckStep = SizeCheckStep.FinalAllocate;
-							}
-						}
-						else if ((enabledEvents & WidgetEvent.PreferredWidthCheck) != 0) {
-						    var w = eventSink.OnGetPreferredWidth ();
-							req.Width = (int) w.MinSize;
-							sizeCheckStep = SizeCheckStep.FinalAllocate;
-						}
-					}
+					var w = eventSink.GetPreferredSize (wc, hc);
+					req.Width = (int) w.Width;
+					req.Height = (int) w.Height;
 				});
 			}
-			args.Requisition = req;
-		}
 
-		void HandleWidgetSizeAllocated (object o, Gtk.SizeAllocatedArgs args)
-		{
-			if ((enabledEvents & sizeCheckEvents) == 0) {
-				// If no sizing event is set, it means this handler was set because there is a min size.
-				// In that case, there isn't any thing left to do here
-				return;
-			}
-			
-			ApplicationContext.InvokeUserCode (delegate {
-				if (sizeCheckStep == SizeCheckStep.SizeRequest && (enabledEvents & sizeCheckEvents) != sizeCheckEvents) {
-					var ev = EventSink.GetSizeRequestMode () == SizeRequestMode.HeightForWidth ? WidgetEvent.PreferredWidthCheck | WidgetEvent.PreferredHeightForWidthCheck : WidgetEvent.PreferredHeightCheck | WidgetEvent.PreferredWidthForHeightCheck;
-					// If all size request methods are overriden, the widget's size request won't be called, so this status is correct
-					if ((enabledEvents & ev) != ev)
-						Console.WriteLine ("SizeRequest not called. Should not happen.");
-				}
-				else if (sizeCheckStep == SizeCheckStep.PreAllocate || sizeCheckStep == SizeCheckStep.AdjustSize) {
-					if (EventSink.GetSizeRequestMode () == SizeRequestMode.HeightForWidth) {
-						realRequestedHeight = (int) eventSink.OnGetPreferredHeightForWidth (args.Allocation.Width).MinSize;
-						sizeCheckStep = SizeCheckStep.AdjustSize;
-						Widget.QueueResize ();
-					} else {
-						realRequestedWidth = (int) eventSink.OnGetPreferredWidthForHeight (args.Allocation.Height).MinSize;
-						sizeCheckStep = SizeCheckStep.AdjustSize;
-						Widget.QueueResize ();
-					}
-				}
-			});
+			if (Frontend.MinWidth != -1 && Frontend.MinWidth > req.Width)
+				req.Width = (int) Frontend.MinWidth;
+			if (Frontend.MinHeight != -1 && Frontend.MinHeight > req.Height)
+				req.Height = (int) Frontend.MinHeight;
+
+			args.Requisition = req;
 		}
 
 		[GLib.ConnectBefore]
@@ -1203,6 +1103,37 @@ namespace Xwt.GtkBackend
 	public interface IGtkWidgetBackend
 	{
 		Gtk.Widget Widget { get; }
+	}
+
+	class WidgetPlacementWrapper: Gtk.Alignment, IConstraintProvider
+	{
+		public WidgetPlacementWrapper (): base (0, 0, 1, 1)
+		{
+		}
+
+		public void UpdatePlacement (Xwt.Widget widget)
+		{
+			LeftPadding = (uint)widget.MarginLeft;
+			RightPadding = (uint)widget.MarginRight;
+			TopPadding = (uint)widget.MarginTop;
+			BottomPadding = (uint)widget.MarginBottom;
+			Xalign = (float) widget.HorizontalPlacement.GetValue ();
+			Yalign = (float) widget.VerticalPlacement.GetValue ();
+			Xscale = (widget.HorizontalPlacement == WidgetPlacement.Fill) ? 1 : 0;
+			Yscale = (widget.VerticalPlacement == WidgetPlacement.Fill) ? 1 : 0;
+		}
+
+		#region IConstraintProvider implementation
+
+		public void GetConstraints (Gtk.Widget target, out SizeConstraint width, out SizeConstraint height)
+		{
+			if (Parent is IConstraintProvider)
+				((IConstraintProvider)Parent).GetConstraints (this, out width, out height);
+			else
+				width = height = SizeConstraint.Unconstrained;
+		}
+
+		#endregion
 	}
 }
 

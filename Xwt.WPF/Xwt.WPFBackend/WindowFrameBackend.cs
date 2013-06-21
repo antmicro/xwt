@@ -133,7 +133,12 @@ namespace Xwt.WPFBackend
 		bool IWindowFrameBackend.Visible
 		{
 			get { return window.Visibility == Visibility.Visible; }
-			set { window.Visibility = value ? Visibility.Visible : Visibility.Hidden; }
+			set {
+				if (value)
+					window.Show ();
+				else
+					window.Hide ();
+			}
 		}
 
 		void IWindowFrameBackend.Present ()
@@ -168,7 +173,7 @@ namespace Xwt.WPFBackend
 			});
 		}
 
-		public void Resize (double width, double height)
+		public void SetSize (double width, double height)
 		{
 			var value = ToNonClientRect (new Rectangle (0, 0, width, height));
 			window.Width = value.Width;

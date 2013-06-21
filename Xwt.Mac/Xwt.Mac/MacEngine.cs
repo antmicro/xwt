@@ -110,6 +110,9 @@ namespace Xwt.Mac
 			RegisterBackend <Xwt.Backends.IListBoxBackend, ListBoxBackend> ();
 			RegisterBackend <Xwt.Backends.IDialogBackend, DialogBackend> ();
 			RegisterBackend <Xwt.Backends.IRichTextViewBackend, RichTextViewBackend> ();
+			RegisterBackend <Xwt.Backends.IScrollbarBackend, ScrollbarBackend> ();
+			RegisterBackend <Xwt.Backends.IDatePickerBackend, DatePickerBackend> ();
+			RegisterBackend <Xwt.Backends.ISliderBackend, SliderBackend> ();
 		}
 
 		public override void RunApplication ()
@@ -206,6 +209,13 @@ namespace Xwt.Mac
 					break;
 			}
 			p.Dispose ();
+		}
+
+		public override object RenderWidget (Widget w)
+		{
+			var view = ((ViewBackend)w.GetBackend ()).Widget;
+			view.LockFocus ();
+			return new NSImage (view.DataWithPdfInsideRect (view.Bounds));
 		}
 	}
 

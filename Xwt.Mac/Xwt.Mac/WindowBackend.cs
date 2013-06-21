@@ -55,6 +55,7 @@ namespace Xwt.Mac
 			controller.Window = this;
 			StyleMask |= NSWindowStyle.Resizable | NSWindowStyle.Closable | NSWindowStyle.Miniaturizable;
 			ContentView.AutoresizesSubviews = true;
+			ContentView.Hidden = true;
 
 			// TODO: do it only if mouse move events are enabled in a widget
 			AcceptsMouseMovedEvents = true;
@@ -290,16 +291,26 @@ namespace Xwt.Mac
 		protected virtual void SetChild (IWidgetBackend child)
 		{
 			if (this.child != null) {
+				ViewBackend.RemoveChildPlacement (this.child.Widget);
 				this.child.Widget.RemoveFromSuperview ();
 			}
 			this.child = (ViewBackend) child;
 			if (child != null) {
-				GetContentView ().AddSubview (this.child.Widget);
+				var w = ViewBackend.GetWidgetWithPlacement (child);
+				GetContentView ().AddSubview (w);
 				SetPadding (frontend.Padding.Left, frontend.Padding.Top, frontend.Padding.Right, frontend.Padding.Bottom);
-				this.child.Widget.AutoresizingMask = NSViewResizingMask.HeightSizable | NSViewResizingMask.WidthSizable;
+				w.AutoresizingMask = NSViewResizingMask.HeightSizable | NSViewResizingMask.WidthSizable;
 			}
 		}
 		
+		public virtual void UpdateChildPlacement (IWidgetBackend childBackend)
+		{
+			ViewBackend.SetChildPlacement (childBackend);
+			var w = GetContentView ().Subviews [0];
+			SetPadding (frontend.Padding.Left, frontend.Padding.Top, frontend.Padding.Right, frontend.Padding.Bottom);
+			w.AutoresizingMask = NSViewResizingMask.HeightSizable | NSViewResizingMask.WidthSizable;
+		}
+
 		bool IWindowFrameBackend.Decorated {
 			get {
 				return (StyleMask & NSWindowStyle.Titled) != 0;
@@ -346,7 +357,7 @@ namespace Xwt.Mac
 				frame.Width -= (float) (left + right);
 				frame.Y += (float) top;
 				frame.Height -= (float) (top + bottom);
-				child.Widget.Frame = frame;
+				GetContentView ().Subviews[0].Frame = frame;
 			}
 		}
 
@@ -356,9 +367,13 @@ namespace Xwt.Mac
 			SetFrame (r, true);
 		}
 		
-		void IWindowFrameBackend.Resize (double width, double height)
+		void IWindowFrameBackend.SetSize (double width, double height)
 		{
 			var cr = ContentRectFor (Frame);
+			if (width == -1)
+				width = cr.Width;
+			if (height == -1)
+				height = cr.Height;
 			var r = FrameRectFor (new System.Drawing.RectangleF ((float)cr.X, (float)cr.Y, (float)width, (float)height));
 			SetFrame (r, true);
 		}

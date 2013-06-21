@@ -25,6 +25,8 @@
 // THE SOFTWARE.
 using System;
 using Xwt;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace GtkTestRunner
 {
@@ -33,9 +35,14 @@ namespace GtkTestRunner
 		public static void Main (string[] args)
 		{
 			Xwt.Application.Initialize (Xwt.ToolkitType.Gtk);
+			ReferenceImageManager.Init ("GtkTestRunner");
 
-			ConsoleTestRunner t = new ConsoleTestRunner ();
-			t.Run (args);
+			var list = new List<string> (args);
+			list.Add ("-domain=None");
+			list.Add ("-noshadow");
+			list.Add ("-nothread");
+			NUnit.ConsoleRunner.Runner.Main (list.ToArray ());
+			ReferenceImageManager.ShowImageVerifier ();
 		}
 	}
 }

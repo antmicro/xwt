@@ -34,7 +34,7 @@ namespace Xwt.Mac
 {
 	class ImageTableCell: NSImageCell, ICellRenderer
 	{
-		ImageCellView cellView;
+		IImageCellViewFrontend cellView;
 		
 		public ImageTableCell ()
 		{
@@ -44,7 +44,7 @@ namespace Xwt.Mac
 		{
 		}
 		
-		public ImageTableCell (ImageCellView cellView)
+		public ImageTableCell (IImageCellViewFrontend cellView)
 		{
 			this.cellView = cellView;
 		}
@@ -52,9 +52,7 @@ namespace Xwt.Mac
 		public void Fill (ICellDataSource source)
 		{
 			cellView.Initialize (source);
-			var img = cellView.Image;
-			if (img != null)
-				ObjectValue = (NSImage) Toolkit.GetBackend (img);
+			ObjectValue = cellView.Image.ToImageDescription ().ToNSImage ();
 		}
 		
 		public override System.Drawing.SizeF CellSize {

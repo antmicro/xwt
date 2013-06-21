@@ -26,6 +26,7 @@
 using System;
 using Gtk;
 using Xwt.CairoBackend;
+using Xwt.Backends;
 
 namespace Xwt.GtkBackend
 {
@@ -33,19 +34,20 @@ namespace Xwt.GtkBackend
 	{
 		TreeModel treeModel;
 		TreeIter iter;
-		CanvasCellView cellView;
+		ICanvasCellViewFrontend cellView;
 
-		public CustomCellRenderer (CanvasCellView cellView)
+		public CustomCellRenderer (ICanvasCellViewFrontend cellView)
 		{
 			this.cellView = cellView;
 		}
 
 		#region ICellDataSource implementation
 
-		public void LoadData (CellLayout cell_layout, CellRenderer cell, TreeModel treeModel, TreeIter iter)
+		public void LoadData (TreeModel treeModel, TreeIter iter)
 		{
 			this.treeModel = treeModel;
 			this.iter = iter;
+			cellView.Initialize (this);
 		}
 
 		object ICellDataSource.GetValue (IDataField field)
@@ -57,22 +59,20 @@ namespace Xwt.GtkBackend
 
 		protected override void Render (Gdk.Drawable window, Gtk.Widget widget, Gdk.Rectangle background_area, Gdk.Rectangle cell_area, Gdk.Rectangle expose_area, Gtk.CellRendererState flags)
 		{
-			ICanvasCellRenderer cell = cellView;
-			cell.ApplicationContext.InvokeUserCode (delegate {
+			cellView.ApplicationContext.InvokeUserCode (delegate {
 				CairoContextBackend ctx = new CairoContextBackend (Util.GetScaleFactor (widget));
 				ctx.Context = Gdk.CairoHelper.Create (window);
 				using (ctx) {
-					cell.Draw (ctx, new Rectangle (cell_area.X, cell_area.Y, cell_area.Width, cell_area.Height));
+					cellView.Draw (ctx, new Rectangle (cell_area.X, cell_area.Y, cell_area.Width, cell_area.Height));
 				}
 			});
 		}
 
 		public override void GetSize (Gtk.Widget widget, ref Gdk.Rectangle cell_area, out int x_offset, out int y_offset, out int width, out int height)
 		{
-			ICanvasCellRenderer cell = cellView;
 			Size size = new Size ();
-			cell.ApplicationContext.InvokeUserCode (delegate {
-				size = cell.GetRequiredSize ();
+			cellView.ApplicationContext.InvokeUserCode (delegate {
+				size = cellView.GetRequiredSize ();
 			});
 			width = (int) size.Width;
 			height = (int) size.Height;

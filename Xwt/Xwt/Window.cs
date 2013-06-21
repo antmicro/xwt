@@ -144,10 +144,9 @@ namespace Xwt
 
 		internal override void SetBackendSize (double width, double height)
 		{
-			if (shown || BackendHost.EngineBackend.HandlesSizeNegotiation) {
+			if (shown)
 				base.SetBackendSize (width, height);
-			}
-			if (!shown) {
+			else {
 				if (width != -1) {
 					initialBounds.Width = width;
 					widthSet = true;
@@ -186,7 +185,14 @@ namespace Xwt
 			}
 		}
 
-		internal void AdjustSize ()
+		internal void OnChildPlacementChanged (Widget child)
+		{
+			Backend.UpdateChildPlacement (child.GetBackend ());
+			if (!BackendHost.EngineBackend.HandlesSizeNegotiation)
+				Widget.QueueWindowSizeNegotiation (this);
+		}
+
+		internal override void AdjustSize ()
 		{
 			if (child == null)
 				return;
@@ -195,35 +201,40 @@ namespace Xwt
 
 			var size = shown ? Size : initialBounds.Size;
 
-			var w = s.GetPreferredWidth ();
+			var wc = (shown || widthSet) ? SizeConstraint.WithSize (size.Width - padding.HorizontalSpacing) : SizeConstraint.Unconstrained;
+			var hc = (shown || heightSet) ? SizeConstraint.WithSize (size.Height - padding.VerticalSpacing) : SizeConstraint.Unconstrained;
 
-			if (!shown && !widthSet)
-				size.Width = w.NaturalSize + padding.HorizontalSpacing;
+			var ws = s.GetPreferredSize (wc, hc, true);
 
-			var h = s.GetPreferredHeightForWidth (size.Width - padding.HorizontalSpacing);
+			if (!shown) {
+				if (!widthSet)
+					size.Width = ws.Width + padding.HorizontalSpacing;
+				if (!heightSet)
+					size.Height = ws.Height + padding.VerticalSpacing;
+			}
 
-			if (!shown && !heightSet)
-				size.Height = h.NaturalSize + padding.VerticalSpacing;
+			if (ws.Width + padding.HorizontalSpacing > size.Width)
+				size.Width = ws.Width + padding.HorizontalSpacing;
+			if (ws.Height + padding.VerticalSpacing > size.Height)
+				size.Height = ws.Height + padding.VerticalSpacing;
 
-			if (w.MinSize + padding.HorizontalSpacing > size.Width)
-				size.Width = w.MinSize + padding.HorizontalSpacing;
-			if (h.MinSize + padding.VerticalSpacing > size.Height)
-				size.Height = h.MinSize + padding.VerticalSpacing;
+			size += Backend.ImplicitMinSize;
 
-			if (!BackendHost.EngineBackend.HandlesSizeNegotiation || !shown) {
-	
+			if (!shown) {
 				shown = true;
 	
 				if (size != Size) {
 					if (locationSet)
 						Backend.Bounds = new Rectangle (initialBounds.X, initialBounds.Y, size.Width, size.Height);
 					else
-						Size = size + Backend.ImplicitMinSize;
-				}
-				else if (locationSet)
+						Backend.SetSize (size.Width, size.Height);
+				} else if (locationSet && !shown)
 					Backend.Move (initialBounds.X, initialBounds.Y);
 	
-				Backend.SetMinSize (Backend.ImplicitMinSize + new Size (w.MinSize + padding.HorizontalSpacing, h.MinSize + padding.VerticalSpacing));
+				Backend.SetMinSize (Backend.ImplicitMinSize + new Size (ws.Width + padding.HorizontalSpacing, ws.Height + padding.VerticalSpacing));
+			} else {
+				if (size != Size)
+					Backend.SetSize (size.Width, size.Height);
 			}
 		}
 	}

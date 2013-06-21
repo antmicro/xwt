@@ -28,6 +28,7 @@ using System;
 
 using Xwt.Backends;
 using Xwt.CairoBackend;
+using Gdk;
 
 namespace Xwt.GtkBackend
 {
@@ -99,6 +100,7 @@ namespace Xwt.GtkBackend
 			RegisterBackend<ISegmentedButtonBackend, SegmentedButtonBackend> ();
 			RegisterBackend<ISliderBackend, SliderBackend> ();
 			RegisterBackend<IRadioButtonBackend, RadioButtonBackend> ();
+			RegisterBackend<IScrollbarBackend, ScrollbarBackend> ();
 		}
 
 		public override void RunApplication ()
@@ -127,8 +129,8 @@ namespace Xwt.GtkBackend
 				((IGtkContainer)cont).ReplaceChild (oldWidget, newWidget);
 			}
 			else if (cont is Gtk.Notebook) {
-				Gtk.Notebook notebook = (Gtk.Notebook) cont;
-				Gtk.Notebook.NotebookChild nc = (Gtk.Notebook.NotebookChild) notebook[oldWidget];
+				Gtk.Notebook notebook = (Gtk.Notebook)cont;
+				Gtk.Notebook.NotebookChild nc = (Gtk.Notebook.NotebookChild)notebook [oldWidget];
 				var detachable = nc.Detachable;
 				var pos = nc.Position;
 				var reorderable = nc.Reorderable;
@@ -138,11 +140,26 @@ namespace Xwt.GtkBackend
 				notebook.Remove (oldWidget);
 				notebook.InsertPage (newWidget, label, pos);
 				
-				nc = (Gtk.Notebook.NotebookChild) notebook[newWidget];
+				nc = (Gtk.Notebook.NotebookChild)notebook [newWidget];
 				nc.Detachable = detachable;
 				nc.Reorderable = reorderable;
 				nc.TabExpand = tabExpand;
 				nc.TabFill = tabFill;
+			}
+			else if (cont is Gtk.Paned) {
+				var paned = (Gtk.Paned)cont;
+				var pc = (Gtk.Paned.PanedChild)paned[oldWidget];
+				var resize = pc.Resize;
+				var shrink = pc.Shrink;
+				var pos = paned.Position;
+				if (paned.Child1 == oldWidget) {
+					paned.Remove (oldWidget);
+					paned.Pack1 (newWidget, resize, shrink);
+				} else {
+					paned.Remove (oldWidget);
+					paned.Pack2 (newWidget, resize, shrink);
+				}
+				paned.Position = pos;
 			}
 			else if (cont is Gtk.Bin) {
 				((Gtk.Bin)cont).Remove (oldWidget);
@@ -225,6 +242,16 @@ namespace Xwt.GtkBackend
 			}
 			
 			Gdk.Threads.Leave();
+		}
+
+		public override object RenderWidget (Widget widget)
+		{
+			var w = ((WidgetBackend)widget.GetBackend ()).Widget;
+			Gdk.Window win = w.GdkWindow;
+			if (win != null && win.IsViewable)
+				return new GtkImage (Gdk.Pixbuf.FromDrawable (win, Colormap.System, w.Allocation.X, w.Allocation.Y, 0, 0, w.Allocation.Width, w.Allocation.Height));
+			else
+				throw new InvalidOperationException ();
 		}
 	}
 	

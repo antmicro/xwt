@@ -72,6 +72,7 @@ namespace Samples
 			AddSample (null, "Clipboard", typeof(ClipboardSample));
 			AddSample (null, "ColorSelector", typeof(ColorSelectorSample));
 			AddSample (null, "ComboBox", typeof(ComboBoxes));
+			AddSample (null, "DatePicker", typeof(DatePickerSample));
 //			AddSample (null, "Designer", typeof(Designer));
 			AddSample (null, "Drag & Drop", typeof(DragDrop));
 			
@@ -86,6 +87,7 @@ namespace Samples
 			AddSample (n, "Text", typeof(DrawingText));
 			AddSample (n, "Partial Images", typeof (PartialImages));
 			AddSample (n, "Custom Drawn Image", typeof (ImageScaling));
+			AddSample (n, "Widget Rendering", typeof (WidgetRendering));
 
 			AddSample (null, "Expander", typeof (ExpanderSample));
 			AddSample (null, "Progress bars", typeof(ProgressBarSample));
@@ -104,6 +106,8 @@ namespace Samples
 			AddSample (null, "ReliefFrame", typeof (ReliefFrameSample));
 			AddSample (null, "Screens", typeof (ScreensSample));
 			AddSample (null, "Scroll View", typeof(ScrollWindowSample));
+			AddSample (null, "Scrollbar", typeof(ScrollbarSample));
+			AddSample (null, "Slider", typeof (SliderSample));
 			AddSample (null, "Spinners", typeof (Spinners));
 			AddSample (null, "Tables", typeof (Tables));
 			AddSample (null, "Text Entry", typeof (TextEntries));
@@ -118,7 +122,7 @@ namespace Samples
 			
 			sampleBox = new VBox ();
 			title = new Label ("Sample:");
-			sampleBox.PackStart (title, BoxMode.None);
+			sampleBox.PackStart (title);
 			
 			box.Panel2.Content = sampleBox;
 			box.Panel2.Resize = true;
@@ -154,7 +158,7 @@ namespace Samples
 				if (s.Type != null) {
 					if (s.Widget == null)
 						s.Widget = (Widget)Activator.CreateInstance (s.Type);
-					sampleBox.PackStart (s.Widget, BoxMode.FillAndExpand);
+					sampleBox.PackStart (s.Widget, true);
 				}
 
 			//	Console.WriteLine (System.Xaml.XamlServices.Save (s.Widget));
@@ -167,7 +171,8 @@ namespace Samples
 		{
 			if (w == null)
 				return;
-			Console.WriteLine (new string (' ', ind * 2) + " " + w.GetType ().Name + " " + w.GetPreferredWidth () + " " + w.GetPreferredHeight ());
+			var s = w.GetPreferredSize ();
+			Console.WriteLine (new string (' ', ind * 2) + " " + w.GetType ().Name + " " + s.Width + " " + s.Height);
 			foreach (var c in w.Children)
 				Dump (c, ind + 1);
 		}

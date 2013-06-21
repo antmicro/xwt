@@ -29,7 +29,7 @@ using Xwt;
 
 namespace Xwt.Backends
 {
-	public interface IWindowBackend: IWindowFrameBackend
+	public interface IWindowBackend: IWindowFrameBackend, IChildPlacementHandler
 	{
 		void SetChild (IWidgetBackend child);
 		void SetMainMenu (IMenuBackend menu);

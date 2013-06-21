@@ -284,7 +284,7 @@ namespace Xwt
 					Application.NotifyException (error);
 				});
 			}
-			if (inUserCode == 1) {
+			if (inUserCode == 1 && !exitCallbackRegistered) {
 				while (exitActions.Count > 0) {
 					try {
 						exitActions.Dequeue ()();
@@ -382,6 +382,11 @@ namespace Xwt
 		public T CreateFrontend<T> (object ob)
 		{
 			throw new NotImplementedException ();
+		}
+
+		public Image RenderWidget (Widget widget)
+		{
+			return new Image (backend.RenderWidget (widget));
 		}
 
 		internal Image GetStockIcon (string id)
