@@ -78,6 +78,13 @@ namespace Xwt.GtkBackend
 			if (!Widget.Model.IterNthChild (out it, row))
 				return;
 			Widget.Selection.SelectIter (it);
+
+            /* INTRODUCED BY houen */
+            // scrolls the listview to the selected cell
+            var path = Widget.Model.GetPath(it);
+            var column = Widget.Columns[0];
+            Widget.ScrollToCell(path, column, false, 0, 0);
+            /* INTRODUCED BY houen */
 		}
 
 		public void UnselectRow (int row)
