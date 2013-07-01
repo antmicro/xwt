@@ -34,31 +34,14 @@ namespace Xwt.GtkBackend
 	{
 		bool showBorder;
 
-        private int[] selectionOnPress;
         protected override void ButtonPressedInternal(ButtonEventArgs a)
         {
-            selectionOnPress = SelectedRows;
-        }
-
-        protected override void ButtonReleasedInternal(ButtonEventArgs a)
-        {
-            if (a.Button == PointerButton.Right)
+            if (a.Button == PointerButton.Right && SelectedRows.Length > 1)
             {
-                if (selectionOnPress.Contains(SelectedRows[0]))
-                {
-                    Gtk.TreeIter it;
-                    foreach (var row in selectionOnPress)
-                    {
-                        if (!Widget.Model.IterNthChild (out it, row))
-                        {
-                            continue;
-                        }
-                        Widget.Selection.SelectIter (it);
-                    }
-                }
+                a.Handled = true;
             }
         }
-		
+        		
 		protected new IListViewEventSink EventSink {
 			get { return (IListViewEventSink)base.EventSink; }
 		}
