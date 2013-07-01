@@ -38,9 +38,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="Xwt\ReliefFrame.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="Xwt\Widget.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -414,6 +411,8 @@
     <Compile Include="Xwt\TableCalc.cs" />
     <Compile Include="Xwt\VSlider.cs" />
     <Compile Include="Xwt\HSlider.cs" />
+    <Compile Include="Xwt.Backends\ResourceManager.cs" />
+    <Compile Include="Xwt.Backends\DisposableResourceBackendHandler.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup />

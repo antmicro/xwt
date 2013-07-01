@@ -117,12 +117,16 @@ namespace Xwt.GtkBackend
 			}
 		}
 
-		
 		static GtkTextLayoutBackendHandler ()
 		{
 			using (Cairo.Surface sf = new Cairo.ImageSurface (Cairo.Format.ARGB32, 1, 1)) {
 				SharedContext = new Cairo.Context (sf);
 			}
+		}
+
+		public static void DisposeResources ()
+		{
+			((IDisposable)SharedContext).Dispose ();
 		}
 		
 		public override object Create ()
@@ -201,7 +205,7 @@ namespace Xwt.GtkBackend
 			return new Point (pos.X, pos.Y);
 		}
 
-		public override void DisposeBackend (object backend)
+		public override void Dispose (object backend)
 		{
 			var tl = (IDisposable) backend;
 			tl.Dispose ();
