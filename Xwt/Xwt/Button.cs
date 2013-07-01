@@ -206,6 +206,19 @@ namespace Xwt
 				BackendHost.OnAfterEventRemove (ButtonEvent.Clicked, clicked);
 			}
 		}
+
+        public new bool Sensitive
+        {
+            get { return Backend.Sensitive; }
+            set
+            {
+                if(image != null)
+                {
+                    Image = image.WithAlpha((value) ? 1 : 0.25);
+                }
+                Backend.Sensitive = value;
+            }
+        }
 	}
 }
 
