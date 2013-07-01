@@ -58,7 +58,7 @@ namespace Xwt.GtkBackend
 			}
 			else if (view is ImageCellView) {
 				CellRendererImage cr = new CellRendererImage (actx);
-				col.PackStart (target, cr, false);
+                col.PackStart (target, cr, false);
 				col.AddAttribute (target, cr, "image", ((ImageCellView)view).ImageField.Index);
 				return cr;
 			}
@@ -149,7 +149,14 @@ namespace Xwt.GtkBackend
 			var ctx = Gdk.CairoHelper.Create (window);
 			using (ctx) {
 				var pix = ((GtkImage)image.Backend);
-				pix.Draw (actx, ctx, Util.GetScaleFactor (widget), cell_area.X, cell_area.Y, image);
+
+                /* INTRODUCED BY houen */
+                // draws icon centered
+                var x = cell_area.X + (cell_area.Width - image.Size.Width) / 2;
+                var y = cell_area.Y + (cell_area.Height - image.Size.Height) / 2;
+                /* INTRODUCED BY houen */
+
+				pix.Draw (actx, ctx, Util.GetScaleFactor (widget), x, y, image);
 			}
 		}
 		
