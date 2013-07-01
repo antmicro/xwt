@@ -841,12 +841,19 @@ namespace Xwt.GtkBackend
 			a.X = args.Event.XRoot - sc.X;
 			a.Y = args.Event.YRoot - sc.Y;
 			a.Button = (PointerButton) args.Event.Button;
+
+            ButtonReleasedInternal(a);
+
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnButtonReleased (a);
 			});
 			if (a.Handled)
 				args.RetVal = true;
 		}
+
+        protected virtual void ButtonReleasedInternal(ButtonEventArgs a)
+        {
+        }
 
 		[GLib.ConnectBeforeAttribute]
 		void HandleButtonPressEvent (object o, Gtk.ButtonPressEventArgs args)
@@ -862,12 +869,19 @@ namespace Xwt.GtkBackend
 				a.MultiplePress = 3;
 			else
 				a.MultiplePress = 1;
+
+            ButtonPressedInternal(a);
+
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnButtonPressed (a);
 			});
 			if (a.Handled)
 				args.RetVal = true;
 		}
+
+        protected virtual void ButtonPressedInternal(ButtonEventArgs a)
+        {
+        }
 		
 		[GLib.ConnectBefore]
 		void HandleWidgetDragMotion (object o, Gtk.DragMotionArgs args)
