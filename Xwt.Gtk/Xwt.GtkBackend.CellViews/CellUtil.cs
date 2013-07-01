@@ -163,6 +163,5 @@ namespace Xwt.GtkBackend
 		Gtk.TreeIter PressedIter { get; set; }
 		CellViewBackend PressedCell { get; set; }
 	}
-
 }
 
