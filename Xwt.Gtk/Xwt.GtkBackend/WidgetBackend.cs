@@ -861,6 +861,9 @@ namespace Xwt.GtkBackend
 			var a = GetButtonReleaseEventArgs (args);
 			if (a == null)
 				return;
+
+            ButtonReleasedInternal(a);
+
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnButtonReleased (a);
 			});
@@ -879,6 +882,10 @@ namespace Xwt.GtkBackend
 			a.Button = (PointerButton) args.Event.Button;
 			return a;
 		}
+
+        protected virtual void ButtonReleasedInternal(ButtonEventArgs a)
+        {
+        }
 
 		[GLib.ConnectBeforeAttribute]
 		void HandleButtonPressEvent (object o, Gtk.ButtonPressEventArgs args)
@@ -909,9 +916,15 @@ namespace Xwt.GtkBackend
 			else
 				a.MultiplePress = 1;
 
+			ButtonPressedInternal(a);
+
 			a.IsContextMenuTrigger = args.Event.TriggersContextMenu ();
 			return a;
 		}
+
+        protected virtual void ButtonPressedInternal(ButtonEventArgs a)
+        {
+        }
 		
 		[GLib.ConnectBefore]
 		void HandleWidgetDragMotion (object o, Gtk.DragMotionArgs args)

@@ -78,6 +78,11 @@ namespace Xwt
 		{
 			columns = new ListViewColumnCollection (this);
 			VerticalScrollPolicy = HorizontalScrollPolicy = ScrollPolicy.Automatic;
+
+            // TODO investigate how to remove this two lines
+            // This is needed to make hack with multiple selection and right-click working...
+            ButtonPressed += (object sender, ButtonEventArgs e) => {};
+            ButtonReleased += (object sender, ButtonEventArgs e) => {};
 		}
 		
 		protected override BackendHost CreateBackendHost ()
