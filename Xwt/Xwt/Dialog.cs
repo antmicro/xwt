@@ -244,6 +244,7 @@ namespace Xwt
 		
 		public Command Command {
 			get { return command; }
+            protected set { command = value; }
 		}
 		
 		public string Label {
@@ -310,9 +311,18 @@ namespace Xwt
 		
 		internal void RaiseClicked ()
 		{
-			if (Clicked != null)
-				Clicked (this, EventArgs.Empty);
+            if (InternalRaiseClicked() && Clicked != null)
+  				Clicked (this, EventArgs.Empty);
 		}
+
+        /* INTRODUCED BY houen */
+
+        protected virtual bool InternalRaiseClicked ()
+        {
+            return true;
+        }
+
+        /* INTRODUCED BY houen */
 		
 		public event EventHandler Clicked;
 	}
