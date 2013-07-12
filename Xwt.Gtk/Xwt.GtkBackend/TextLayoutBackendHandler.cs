@@ -125,6 +125,12 @@ namespace Xwt.GtkBackend
 		{
 			((IDisposable)SharedContext).Dispose ();
 		}
+
+		public static void DisposeIt()
+		{
+			(SharedContext as IDisposable).Dispose();
+		}
+
 		
 		public override object Create ()
 		{
