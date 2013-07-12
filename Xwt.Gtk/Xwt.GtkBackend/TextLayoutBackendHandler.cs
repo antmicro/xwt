@@ -105,7 +105,7 @@ namespace Xwt.GtkBackend
 			}
 
 			public void Dispose ()
-			{
+            {
 				if (layout != null) {
 					layout.Dispose ();
 					layout = null;
@@ -124,6 +124,11 @@ namespace Xwt.GtkBackend
 				SharedContext = new Cairo.Context (sf);
 			}
 		}
+
+    public static void DisposeIt()
+    {
+       (SharedContext as IDisposable).Dispose();
+    }
 		
 		public override object Create ()
 		{
