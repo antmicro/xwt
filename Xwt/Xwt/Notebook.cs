@@ -72,6 +72,7 @@ namespace Xwt
 		public Notebook ()
 		{
 			tabs = new ChildrenCollection <NotebookTab> ((WidgetBackendHost) BackendHost);
+
 		}
 		
 		protected override BackendHost CreateBackendHost ()
@@ -102,6 +103,11 @@ namespace Xwt
 			RegisterChild (tab.Child);
 			Backend.Add ((IWidgetBackend)GetBackend (tab.Child), tab);
 			OnPreferredSizeChanged ();
+
+      tab.Closing += (NotebookTab obj) => 
+      {
+          Tabs.Remove(obj);
+      };
 		}
 		
 		void OnReplaceChild (NotebookTab tab, Widget oldWidget, Widget newWidget)
@@ -120,7 +126,7 @@ namespace Xwt
 				return tabs [Backend.CurrentTab];
 			}
 			set {
-				for (int n=0; n<tabs.Count; n++) {
+				for (int n = 0; n<tabs.Count; n++) {
 					if (tabs[n] == value) {
 						Backend.CurrentTab = n;
 						return;
@@ -163,6 +169,8 @@ namespace Xwt
 		IContainerEventSink<NotebookTab> parent;
 		string label;
 		Widget child;
+
+        public event Action<NotebookTab> Closing;
 		
 		internal NotebookTab (IContainerEventSink<NotebookTab> parent, Widget child)
 		{
@@ -190,6 +198,15 @@ namespace Xwt
 				parent.ChildReplaced (this, oldVal, value);
 			}
 		}
+
+        public void OnClosing()
+        {
+            var c = Closing;
+            if (c != null)
+            {
+                c(this);
+            }
+        }
 	}
 
 	public enum NotebookTabOrientation {

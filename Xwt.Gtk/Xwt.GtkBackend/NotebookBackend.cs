@@ -140,6 +140,7 @@ namespace Xwt.GtkBackend
 				var nativeWidget = GetWidget((IWidgetBackend)Toolkit.GetBackend(tab.Child));
 				button.Clicked += (object sender, EventArgs e) => 
 				{
+                    tab.OnClosing();
 					Widget.Remove(nativeWidget);
 				};
 			}
