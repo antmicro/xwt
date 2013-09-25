@@ -26,13 +26,22 @@
 
 using System;
 using Xwt.Backends;
+using System.Linq;
 
 namespace Xwt.GtkBackend
 {
 	public class ListViewBackend: TableViewBackend, IListViewBackend
 	{
 		bool showBorder;
-		
+
+        protected override void ButtonPressedInternal(ButtonEventArgs a)
+        {
+            if (a.Button == PointerButton.Right && SelectedRows.Length > 1)
+            {
+                a.Handled = true;
+            }
+        }
+        		
 		protected new IListViewEventSink EventSink {
 			get { return (IListViewEventSink)base.EventSink; }
 		}
@@ -78,6 +87,13 @@ namespace Xwt.GtkBackend
 			if (!Widget.Model.IterNthChild (out it, row))
 				return;
 			Widget.Selection.SelectIter (it);
+
+            /* INTRODUCED BY houen */
+            // scrolls the listview to the selected cell
+            var path = Widget.Model.GetPath(it);
+            var column = Widget.Columns[0];
+            Widget.ScrollToCell(path, column, false, 0, 0);
+            /* INTRODUCED BY houen */
 		}
 
 		public void UnselectRow (int row)
@@ -125,6 +141,8 @@ namespace Xwt.GtkBackend
 				Widget.HeadersVisible = value;
 			}
 		}
+
+
 	}
 }
 

@@ -117,18 +117,18 @@ namespace Xwt.GtkBackend
 			}
 		}
 
+		
 		static GtkTextLayoutBackendHandler ()
 		{
 			using (Cairo.Surface sf = new Cairo.ImageSurface (Cairo.Format.ARGB32, 1, 1)) {
 				SharedContext = new Cairo.Context (sf);
 			}
 		}
-
+		
 		public static void DisposeResources ()
 		{
 			((IDisposable)SharedContext).Dispose ();
 		}
-		
 		public override object Create ()
 		{
 			return new PangoBackend {

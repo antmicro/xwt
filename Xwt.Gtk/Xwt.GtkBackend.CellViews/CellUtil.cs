@@ -43,8 +43,7 @@ namespace Xwt.GtkBackend
 			{
 				this.iter = iter;
 				this.treeModel = treeModel;
-			}
-
+				}
 			public object GetValue (IDataField field)
 			{
 				return treeModel.GetValue (iter, field.Index);

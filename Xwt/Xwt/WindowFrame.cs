@@ -68,7 +68,9 @@ namespace Xwt
 		Point location;
 		Size size;
 		bool pendingReallocation;
-        Image icon;
+		#pragma warning disable 0649
+		Image icon;
+		#pragma warning restore 0649
 		WindowFrame transientFor;
 		
 		protected class WindowBackendHost: BackendHost<WindowFrame,IWindowFrameBackend>, IWindowFrameEventSink
@@ -218,10 +220,10 @@ namespace Xwt
 			set { Backend.Title = value; }
 		}
 
-        public Image Icon {
-            get { return icon; }
+		public Image Icon {
+			get { return icon; }
 			set { icon = value; Backend.SetIcon (icon != null ? icon.ImageDescription : ImageDescription.Null); }
-        }
+		}
 		
 		public bool Decorated {
 			get { return Backend.Decorated; }

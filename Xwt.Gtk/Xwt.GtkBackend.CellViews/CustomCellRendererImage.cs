@@ -65,8 +65,8 @@ namespace Xwt.GtkBackend
 			get { return image; }
 			set { image = value; }
 		}
-
-		protected override void Render (Gdk.Drawable window, Gtk.Widget widget, Gdk.Rectangle background_area, Gdk.Rectangle cell_area, Gdk.Rectangle expose_area, Gtk.CellRendererState flags)
+	  
+    protected override void Render (Gdk.Drawable window, Gtk.Widget widget, Gdk.Rectangle background_area, Gdk.Rectangle cell_area, Gdk.Rectangle expose_area, Gtk.CellRendererState flags)
 		{
 			if (image.IsNull)
 				return;
@@ -74,10 +74,17 @@ namespace Xwt.GtkBackend
 			var ctx = Gdk.CairoHelper.Create (window);
 			using (ctx) {
 				var pix = ((GtkImage)image.Backend);
-				pix.Draw (actx, ctx, Util.GetScaleFactor (widget), cell_area.X, cell_area.Y, image);
+
+                /* INTRODUCED BY houen */
+                // draws icon centered
+                var x = cell_area.X + (cell_area.Width - image.Size.Width) / 2;
+                var y = cell_area.Y + (cell_area.Height - image.Size.Height) / 2;
+                /* INTRODUCED BY houen */
+
+				pix.Draw (actx, ctx, Util.GetScaleFactor (widget), x, y, image);
 			}
-		}
-		
+		}	
+
 		public override void GetSize (Gtk.Widget widget, ref Gdk.Rectangle cell_area, out int x_offset, out int y_offset, out int width, out int height)
 		{
 			if (image.IsNull) {

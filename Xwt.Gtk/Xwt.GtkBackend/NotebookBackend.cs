@@ -111,7 +111,21 @@ namespace Xwt.GtkBackend
 		Gtk.Widget CreateLabel (NotebookTab tab)
 		{
 			var vbox = new Gtk.HBox();
-			Gtk.Label label = new Gtk.Label (tab.Label);
+			Gtk.Label label = new Gtk.Label ();
+
+            /* INTRODUCED BY houen */
+
+            if (tab.Label.Contains("\\_"))
+            {
+                label.Text = tab.Label.Replace("\\_", "_");
+            }
+            else
+            {
+                label.TextWithMnemonic = tab.Label.Replace("\\_", "_");
+            }
+
+            /* INTRODUCED BY houen */
+                            
 			label.Show ();
 			vbox.PackStart(label);
 
@@ -125,6 +139,7 @@ namespace Xwt.GtkBackend
 				var nativeWidget = GetWidget((IWidgetBackend)Toolkit.GetBackend(tab.Child));
 				button.Clicked += (object sender, EventArgs e) => 
 				{
+                    tab.OnClosing();
 					Widget.Remove(nativeWidget);
 				};
 			}
