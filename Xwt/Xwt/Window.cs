@@ -37,7 +37,7 @@ namespace Xwt
 		WidgetSpacing padding;
 		Menu mainMenu;
 		bool shown;
-		
+
 		protected new class WindowBackendHost: WindowFrame.WindowBackendHost
 		{
 		}
@@ -49,17 +49,18 @@ namespace Xwt
 		
 		public Window ()
 		{
-			Padding = 6;
-		}
-		
-		public Window (string title): base (title)
-		{
+			Padding = 12;
 		}
 		
 		IWindowBackend Backend {
 			get { return (IWindowBackend) BackendHost.Backend; } 
 		}
-		
+
+		public WindowLocation InitialLocation {
+			get { return initialLocation; }
+			set { initialLocation = value; }
+		}
+
 		public WidgetSpacing Padding {
 			get { return padding; }
 			set {
@@ -141,6 +142,7 @@ namespace Xwt
 		bool heightSet;
 		bool locationSet;
 		Rectangle initialBounds;
+		WindowLocation initialLocation = WindowLocation.CenterParent;
 
 		internal override void SetBackendSize (double width, double height)
 		{
@@ -213,15 +215,32 @@ namespace Xwt
 					size.Height = ws.Height + padding.VerticalSpacing;
 			}
 
-			if (ws.Width + padding.HorizontalSpacing > size.Width)
-				size.Width = ws.Width + padding.HorizontalSpacing;
-			if (ws.Height + padding.VerticalSpacing > size.Height)
-				size.Height = ws.Height + padding.VerticalSpacing;
+			Size mMinSize, mDecorationsSize;
+			Backend.GetMetrics (out mMinSize, out mDecorationsSize);
 
-			size += Backend.ImplicitMinSize;
+			if (ws.Width < mMinSize.Width)
+				ws.Width = mMinSize.Width;
+			if (ws.Height < mMinSize.Height)
+				ws.Height = mMinSize.Height;
+
+			if (ws.Width > size.Width)
+				size.Width = ws.Width;
+			if (ws.Height > size.Height)
+				size.Height = ws.Height;
 
 			if (!shown) {
 				shown = true;
+
+				if (!locationSet && initialLocation != WindowLocation.Manual) {
+					Point center;
+					if (initialLocation == WindowLocation.CenterScreen || TransientFor == null)
+						center = Desktop.PrimaryScreen.VisibleBounds.Center;
+					else
+						center = TransientFor.ScreenBounds.Center;
+					initialBounds.X = center.X - size.Width / 2;
+					initialBounds.Y = center.Y - size.Height / 2;
+					locationSet = true;
+				}
 	
 				if (size != Size) {
 					if (locationSet)
@@ -231,11 +250,11 @@ namespace Xwt
 				} else if (locationSet && !shown)
 					Backend.Move (initialBounds.X, initialBounds.Y);
 	
-				Backend.SetMinSize (Backend.ImplicitMinSize + new Size (ws.Width + padding.HorizontalSpacing, ws.Height + padding.VerticalSpacing));
 			} else {
 				if (size != Size)
 					Backend.SetSize (size.Width, size.Height);
 			}
+			Backend.SetMinSize (mDecorationsSize + new Size (ws.Width + padding.HorizontalSpacing, ws.Height + padding.VerticalSpacing));
 		}
 	}
 }

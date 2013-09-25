@@ -35,11 +35,12 @@ using Xwt.Drawing;
 using System.Reflection;
 using System.Xaml;
 using System.Linq;
+using Xwt.Motion;
 
 namespace Xwt
 {
 	[BackendType (typeof(IWidgetBackend))]
-	public abstract class Widget: XwtComponent, IWidgetSurface
+	public abstract class Widget: XwtComponent, IWidgetSurface, IAnimatable
 	{
 		static bool DebugWidgetLayout = false;
 		static int DebugWidgetLayoutIndent = 0;
@@ -475,6 +476,12 @@ namespace Xwt
 			get { return Backend.HasFocus; }
 		}
 		
+		[DefaultValue (1d)]
+		public double Opacity {
+			get { return Backend.Opacity; }
+			set { Backend.Opacity = value; }
+		}
+
 		[DefaultValue (null)]
 		public string Name { get; set; }
 		
@@ -900,7 +907,7 @@ namespace Xwt
 			// itself when its size changes
 			if (boundsChanged == null) {
 				BoundsChanged += delegate {
-					OnReallocate ();
+					Reallocate ();
 				};
 			}
 		}
@@ -951,16 +958,7 @@ namespace Xwt
 		
 		void IWidgetSurface.Reallocate ()
 		{
-			reallocationQueue.Remove (this);
-			if (DebugWidgetLayout) {
-				LayoutLog ("Reallocate: {0} - {1}", Size, GetWidgetDesc ());
-				DebugWidgetLayoutIndent += 3;
-			}
-
-			OnReallocate ();
-
-			if (DebugWidgetLayout)
-				DebugWidgetLayoutIndent -= 3;
+			Reallocate ();
 		}
 
 		Size IWidgetSurface.GetPreferredSize (bool includeMargin)
@@ -977,20 +975,33 @@ namespace Xwt
 			if (sizeCached && widthConstraint == cachedWidthConstraint && heightConstraint == cachedHeightConstraint)
 				return cachedSize;
 			else {
+				if (widthRequest != -1 && !widthConstraint.IsConstrained)
+					widthConstraint = SizeConstraint.WithSize (widthRequest);
+
+				if (heightRequest != -1 && !heightConstraint.IsConstrained)
+					heightConstraint = SizeConstraint.WithSize (heightRequest);
+
 				if (DebugWidgetLayout) {
 					LayoutLog ("GetPreferredSize: wc:{0} hc:{1} - {2}", widthConstraint, heightConstraint, GetWidgetDesc ());
 					DebugWidgetLayoutIndent += 3;
 				}
 
-				cachedSize = OnGetPreferredSize (widthConstraint, heightConstraint);
+				if (widthRequest == -1 || heightRequest == -1)
+					cachedSize = OnGetPreferredSize (widthConstraint, heightConstraint);
 
 				if (DebugWidgetLayout)
 					DebugWidgetLayoutIndent -= 3;
 
-				if (minWidth > cachedSize.Width)
+				if (widthRequest != -1)
+					cachedSize.Width = widthRequest;
+				else if (minWidth > cachedSize.Width)
 					cachedSize.Width = minWidth;
-				if (minHeight > cachedSize.Height)
+
+				if (heightRequest != -1)
+					cachedSize.Height = heightRequest;
+				else if (minHeight > cachedSize.Height)
 					cachedSize.Height = minHeight;
+
 				if (cachedSize.Width < 0)
 					cachedSize.Width = 0;
 				if (cachedSize.Height < 0)
@@ -1000,6 +1011,11 @@ namespace Xwt
 					cachedWidthConstraint = widthConstraint;
 					cachedHeightConstraint = heightConstraint;
 				}
+
+				if (DebugWidgetLayout) {
+					LayoutLog ("-> {0}", cachedSize);
+				}
+
 				return cachedSize;
 			}
 		}
@@ -1011,13 +1027,34 @@ namespace Xwt
 		Toolkit IWidgetSurface.ToolkitEngine {
 			get { return BackendHost.ToolkitEngine; }
 		}
-		
+
+		void Reallocate ()
+		{
+			reallocationQueue.Remove (this);
+			if (DebugWidgetLayout) {
+				LayoutLog ("Reallocate: {0} - {1}", Size, GetWidgetDesc ());
+				DebugWidgetLayoutIndent += 3;
+			}
+
+			OnReallocate ();
+
+			if (children != null && !BackendHost.EngineBackend.HandlesSizeNegotiation) {
+				foreach (Widget w in children) {
+					if (w.Visible)
+						w.Surface.Reallocate ();
+				}
+			}
+
+			if (DebugWidgetLayout)
+				DebugWidgetLayoutIndent -= 3;
+		}
+
+		/// <summary>
+		/// Called when the size of this widget has changed and its children have to be relocated
+		/// </summary>
+		/// <remarks>It is not necessary to call Reallocate on the children. The Widget class will do it after invoking this method.</remarks>
 		protected virtual void OnReallocate ()
 		{
-			if (children != null) {
-				foreach (Widget w in children)
-					w.Surface.Reallocate ();
-			}
 		}
 
 		/// <summary>
@@ -1027,9 +1064,15 @@ namespace Xwt
 		{
 			return Backend.GetPreferredSize (widthConstraint, heightConstraint);
 		}
-		
-		void OnChildPreferredSizeChanged ()
+
+		protected virtual void OnChildPreferredSizeChanged ()
 		{
+		}
+
+		void NotifyChildPreferredSizeChanged ()
+		{
+			OnChildPreferredSizeChanged ();
+
 			if (Parent != null && resizeRequestQueue.Contains (Parent)) {
 				// Size for this widget will be checked when checking the parent
 				ResetCachedSizes ();
@@ -1063,7 +1106,7 @@ namespace Xwt
 			// The parent also has to be notified of the size change, since it
 			// may imply a change of the size of the parent. However, we don't do
 			// it immediately, but we queue the resizing request
-			
+
 			ResetCachedSizes ();
 			Backend.UpdateLayout ();
 			if (!BackendHost.EngineBackend.HandlesSizeNegotiation)
@@ -1166,7 +1209,7 @@ namespace Xwt
 					Array.Sort (depths, items, 0, remaining);
 
 					for (int k=remaining - 1; k>=0; k--)
-						items[k].OnChildPreferredSizeChanged ();
+						items[k].NotifyChildPreferredSizeChanged ();
 
 					n += remaining;
 				}
@@ -1250,6 +1293,14 @@ namespace Xwt
 				((XwtWidgetBackend)w.Backend).Parent = null;
 		}
 		
+		void IAnimatable.BatchBegin ()
+		{
+		}
+
+		void IAnimatable.BatchCommit ()
+		{
+		}
+
 		/// <summary>
 		/// Raised when the mouse is moved over the widget in a drag&drop operation
 		/// </summary>

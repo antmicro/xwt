@@ -143,14 +143,14 @@ namespace Xwt.GtkBackend
 			}
 			else if (change == ListViewColumnChange.Title)
 				MapTitle (col, tc);
-			else if (change == ListViewColumnChange.IsResizeable)
-				tc.Resizable = col.IsResizeable;
+			else if (change == ListViewColumnChange.CanResize)
+				tc.Resizable = col.CanResize;
 			else if (change == ListViewColumnChange.SortDirection)
 				tc.SortOrder = (SortType)col.SortDirection;
 			else if (change == ListViewColumnChange.SortDataField)
 				tc.SortColumnId = col.SortDataField.Index;
-			else if (change == ListViewColumnChange.IsSortIndicatorShown)
-				tc.SortIndicator = col.IsSortIndicatorShown;
+			else if (change == ListViewColumnChange.SortIndicatorVisible)
+				tc.SortIndicator = col.SortIndicatorVisible;
 		}
 
 		public void SelectAll ()

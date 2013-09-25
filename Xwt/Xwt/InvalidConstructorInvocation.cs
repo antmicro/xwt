@@ -1,10 +1,10 @@
-﻿//
-// ExCanvas.cs
+//
+// InvalidConstructorInvocation.cs
 //
 // Author:
-//       Eric Maupin <ermau@xamarin.com>
+//       Lluis Sanchez <lluis@xamarin.com>
 //
-// Copyright (c) 2012 Xamarin, Inc.
+// Copyright (c) 2013 Xamarin Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,36 +23,23 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 using System;
-using System.Windows.Media;
-using WpfCanvas = System.Windows.Controls.Canvas;
 
-namespace Xwt.WPFBackend
+namespace Xwt
 {
-	internal class ExCanvas
-		: WpfCanvas, IWpfWidget
+	/// <summary>
+	/// Invalid constructor invocation.
+	/// </summary>
+	/// <remarks>
+	/// This exception is thrown when you call a constructor of a base class which takes arguments. This is in general not supported
+	/// since setting properties usually results in virtual methods being invoked, and those virtual methods may be override in
+	/// subclasses that have not been yet initialized.
+	/// </remarks>
+	public class InvalidConstructorInvocation: InvalidOperationException
 	{
-		public Action<System.Windows.Media.DrawingContext> RenderAction;
-
-		protected override void OnRender (System.Windows.Media.DrawingContext dc)
+		public InvalidConstructorInvocation (Type type): base ("Subclasses of " + type + " can only invoke the default constructor")
 		{
-			var render = RenderAction;
-			if (render != null)
-				render (dc);
-			base.OnRender (dc);
-		}
-
-		public WidgetBackend Backend
-		{
-			get;
-			set;
-		}
-
-		protected override System.Windows.Size MeasureOverride (System.Windows.Size constraint)
-		{
-			var s = base.MeasureOverride (constraint);
-			return Backend.MeasureOverride (constraint, s);
 		}
 	}
 }
+

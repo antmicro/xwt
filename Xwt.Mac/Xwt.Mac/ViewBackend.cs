@@ -130,6 +130,11 @@ namespace Xwt.Mac
 			get { return !Widget.Hidden; }
 			set { Widget.Hidden = !value; }
 		}
+
+		public double Opacity {
+			get { return Widget.AlphaValue; }
+			set { Widget.AlphaValue = (float)value; }
+		}
 		
 		public virtual bool Sensitive {
 			get { return sensitive; }
@@ -272,7 +277,7 @@ namespace Xwt.Mac
 			return wrapper;
 		}
 
-		public static void SetChildPlacement (IWidgetBackend childBackend)
+		public static NSView SetChildPlacement (IWidgetBackend childBackend)
 		{
 			var backend = (ViewBackend)childBackend;
 			var child = backend.Widget;
@@ -285,7 +290,7 @@ namespace Xwt.Mac
 					child.RemoveFromSuperview ();
 					ReplaceSubview (wrapper, child);
 				}
-				return;
+				return child;
 			}
 
 			if (wrapper == null) {
@@ -296,6 +301,7 @@ namespace Xwt.Mac
 				wrapper.Frame = f;
 			} else
 				wrapper.UpdateChildPlacement ();
+			return wrapper;
 		}
 
 		public static void RemoveChildPlacement (NSView w)

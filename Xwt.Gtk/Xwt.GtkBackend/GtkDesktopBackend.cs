@@ -58,7 +58,10 @@ namespace Xwt.GtkBackend
 
 		public override bool IsPrimaryScreen (object backend)
 		{
-			return (int)backend == Gdk.Screen.Default.GetMonitorAtPoint (0, 0);
+			if (Platform.IsMac)
+				return (int)backend == 0;
+			else
+				return (int)backend == Gdk.Screen.Default.GetMonitorAtPoint (0, 0);
 		}
 
 		public override Rectangle GetScreenBounds (object backend)
@@ -76,6 +79,11 @@ namespace Xwt.GtkBackend
 		public override string GetScreenDeviceName (object backend)
 		{
 			return backend.ToString ();
+		}
+
+		public override double GetScaleFactor (object backend)
+		{
+			return Gdk.Screen.Default.GetScaleFactor ((int)backend);
 		}
 
 		#endregion

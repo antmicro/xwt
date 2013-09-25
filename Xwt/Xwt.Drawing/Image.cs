@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Linq;
 using Xwt.Backends;
 
 using System.Reflection;
@@ -111,6 +112,26 @@ namespace Xwt.Drawing
 		/// other resources with the name "foo@XXX.png", where XXX can be any arbitrary string. For example "foo@2x.png".
 		/// Each of those resources will be considered different versions of the same image.
 		/// </remarks>
+		public static Image FromResource (string resource)
+		{
+			if (resource == null)
+				throw new ArgumentNullException ("resource");
+
+			return FromResource (Assembly.GetCallingAssembly (), resource);
+		}
+
+		/// <summary>
+		/// Loads an image from a resource
+		/// </summary>
+		/// <returns>An image</returns>
+		/// <param name="type">Type which identifies the assembly from which to load the image</param>
+		/// <param name="resource">Resource name</param>
+		/// <remarks>
+		/// This method will look for alternative versions of the image with different resolutions.
+		/// For example, if a resource is named "foo.png", this method will load
+		/// other resources with the name "foo@XXX.png", where XXX can be any arbitrary string. For example "foo@2x.png".
+		/// Each of those resources will be considered different versions of the same image.
+		/// </remarks>
 		public static Image FromResource (Type type, string resource)
 		{
 			if (type == null)
@@ -164,13 +185,72 @@ namespace Xwt.Drawing
 			}
 			if (altImages.Count > 0) {
 				altImages.Insert (0, img);
-				img = toolkit.ImageBackendHandler.CreateMultiSizeImage (altImages);
+				img = toolkit.ImageBackendHandler.CreateMultiResolutionImage (altImages);
 			}
 			return new Image (img, toolkit) {
 				requestedSize = reqSize
 			};
 		}
-		
+
+		public static Image CreateMultiSizeIcon (IEnumerable<Image> images)
+		{
+			return new Image (Toolkit.CurrentEngine.ImageBackendHandler.CreateMultiSizeIcon (images.Select (i => i.GetBackend ())));
+		}
+
+/*		static bool ParseImageName (string resourceId, string fileName, out int size, out int scale)
+		{
+			if (!fileName.StartsWith (resourceId)) {
+				size = -1;
+				scale = -1;
+				return false;
+			}
+
+			size = -1;
+			int i = fileName.LastIndexOf ('.');
+			if (i < 0)
+				i = fileName.Length - 1;
+
+			scale = ParseScale (fileName, ref i);
+			size = ParseSize (fileName, ref i);
+
+			return i == resourceId.Length - 1;
+		}
+
+		static int ParseScale (string s, ref int i)
+		{
+			if (i > 1 && s [i] >= '0' && s [i] <= '9' && s [i - 1] == '@') {
+				var scale = s [i] - '0';
+				i = i - 2;
+				return scale;
+			} else
+				return 1;
+		}
+
+		static int ParseSize (string s, ref int i)
+		{
+			int end = i;
+			int n = i;
+			while (n >= 0 && char.IsDigit (s[n]))
+				n--;
+			if (end == n || n < 0 || s [n] != 'x')
+				return -1;
+
+			var x = n;
+			var n2 = end;
+			n--;
+
+			while (n >= 0 && n2 > x && s[n] == s[n2]) {
+				n--;
+				n2--;
+			}
+			if (n2 == x && n >= 0 && s[n] == '_') {
+				i = n - 1;
+				return int.Parse (s.Substring (x + 1, end - x - 1));
+			}
+			else
+				return -1;
+		}*/
+
 		public static Image FromFile (string file)
 		{
 			var toolkit = Toolkit.CurrentEngine;
@@ -218,6 +298,22 @@ namespace Xwt.Drawing
 			internal set {
 				requestedSize = value;
 			}
+		}
+
+		/// <summary>
+		/// Gets the width of the image
+		/// </summary>
+		/// <value>The width.</value>
+		public double Width {
+			get { return Size.Width; }
+		}
+
+		/// <summary>
+		/// Gets the height of the image
+		/// </summary>
+		/// <value>The height.</value>
+		public double Height {
+			get { return Size.Height; }
 		}
 
 		/// <summary>
@@ -415,8 +511,7 @@ namespace Xwt.Drawing
 		/// <param name="format">Bitmap format</param>
 		public BitmapImage ToBitmap (ImageFormat format = ImageFormat.ARGB32)
 		{
-			var s = GetFixedSize ();
-			return ToBitmap ((int)s.Width, (int)s.Height);
+			return ToBitmap (1d);
 		}
 
 		/// <summary>
@@ -429,7 +524,7 @@ namespace Xwt.Drawing
 		{
 			if (renderTarget.ParentWindow == null)
 				throw new InvalidOperationException ("renderTarget is not bound to a window");
-			return ToBitmap (renderTarget.ParentWindow, format);
+			return ToBitmap (renderTarget.ParentWindow.Screen.ScaleFactor, format);
 		}
 
 		/// <summary>
@@ -440,7 +535,7 @@ namespace Xwt.Drawing
 		/// <param name="format">Bitmap format</param>
 		public BitmapImage ToBitmap (WindowFrame renderTarget, ImageFormat format = ImageFormat.ARGB32)
 		{
-			return ToBitmap (renderTarget.Screen, format);
+			return ToBitmap (renderTarget.Screen.ScaleFactor, format);
 		}
 
 		/// <summary>
@@ -451,21 +546,20 @@ namespace Xwt.Drawing
 		/// <param name="format">Bitmap format</param>
 		public BitmapImage ToBitmap (Screen renderTarget, ImageFormat format = ImageFormat.ARGB32)
 		{
-			var s = GetFixedSize ();
-			return ToBitmap ((int)(s.Width * renderTarget.ScaleFactor), (int)(s.Height * renderTarget.ScaleFactor), format);
+			return ToBitmap (renderTarget.ScaleFactor, format);
 		}
 
 		/// <summary>
 		/// Converts the image to a bitmap
 		/// </summary>
 		/// <returns>The bitmap.</returns>
-		/// <param name="pixelWidth">Width of the image in real pixels</param>
-		/// <param name="pixelHeight">Height of the image in real pixels</param>
+		/// <param name="scaleFactor">Scale factor of the bitmap</param>
 		/// <param name="format">Bitmap format</param>
-		public BitmapImage ToBitmap (int pixelWidth, int pixelHeight, ImageFormat format = ImageFormat.ARGB32)
+		public BitmapImage ToBitmap (double scaleFactor, ImageFormat format = ImageFormat.ARGB32)
 		{
-			var bmp = ToolkitEngine.ImageBackendHandler.ConvertToBitmap (Backend, pixelWidth, pixelHeight, format);
-			return new BitmapImage (bmp);
+			var s = GetFixedSize ();
+			var bmp = ToolkitEngine.ImageBackendHandler.ConvertToBitmap (Backend, s.Width, s.Height, scaleFactor, format);
+			return new BitmapImage (bmp, s);
 		}
 
 		protected virtual Size GetDefaultSize ()

@@ -33,7 +33,8 @@ using Xwt.Backends;
 
 namespace Xwt
 {
-	public abstract class XwtComponent: Component, IFrontend
+	[System.ComponentModel.DesignerCategory ("Code")]
+	public abstract class XwtComponent : Component, IFrontend
 	{
 		BackendHost backendHost;
 		
@@ -63,6 +64,12 @@ namespace Xwt
 		protected static void MapEvent (object eventId, Type type, string methodName)
 		{
 			EventUtil.MapEvent (eventId, type, methodName);
+		}
+		
+		internal void VerifyConstructorCall<T> (T t)
+		{
+			if (GetType () != typeof(T))
+				throw new InvalidConstructorInvocation (typeof(T));
 		}
 	}
 	

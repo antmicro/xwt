@@ -6,6 +6,7 @@ using System.Text;
 using Xwt.Backends;
 using System.Windows;
 using SWC = System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Xwt.WPFBackend
 {
@@ -16,13 +17,13 @@ namespace Xwt.WPFBackend
 
 		public CanvasBackend ()
 		{
-			Canvas = new ExCanvas ();
+			Canvas = new CustomPanel ();
 			Canvas.RenderAction = Render;
 		}
 
-		private ExCanvas Canvas
+		private CustomPanel Canvas
 		{
-			get { return (ExCanvas) Widget; }
+			get { return (CustomPanel)Widget; }
 			set { Widget = value; }
 		}
 
@@ -31,9 +32,22 @@ namespace Xwt.WPFBackend
 			get { return (ICanvasEventSink) EventSink; }
 		}
 
+		protected override void SetWidgetColor (Drawing.Color value)
+		{
+			// Do nothing
+		}
+
 		private void Render (System.Windows.Media.DrawingContext dc)
 		{
-			CanvasEventSink.OnDraw (new Xwt.WPFBackend.DrawingContext (dc, Widget.GetScaleFactor ()), new Rectangle (0, 0, Widget.ActualWidth, Widget.ActualHeight));
+			if (BackgroundColorSet) {
+				SolidColorBrush mySolidColorBrush = new SolidColorBrush ();
+				mySolidColorBrush.Color = BackgroundColor.ToWpfColor ();
+				Rect myRect = new Rect (0, 0, Widget.ActualWidth, Widget.ActualHeight);
+				dc.DrawRectangle (mySolidColorBrush, null, myRect);
+			}
+			
+			var ctx = new Xwt.WPFBackend.DrawingContext (dc, Widget.GetScaleFactor ());
+			CanvasEventSink.OnDraw (ctx, new Rectangle (0, 0, Widget.ActualWidth, Widget.ActualHeight));
 		}
 
 		public void QueueDraw ()
@@ -58,31 +72,20 @@ namespace Xwt.WPFBackend
 			SetChildBounds (widget, bounds);
 		}
 
+		List<IWidgetBackend> children = new List<IWidgetBackend> ();
+		List<Rectangle> childrenBounds = new List<Rectangle> ();
+
 		public void SetChildBounds (IWidgetBackend widget, Rectangle bounds)
 		{
-			FrameworkElement element = widget.NativeWidget as FrameworkElement;
-			if (element == null)
-				throw new ArgumentException ();
-
-			SWC.Canvas.SetTop (element, bounds.Top);
-			SWC.Canvas.SetLeft (element, bounds.Left);
-
-			// We substract the widget margin here because the size we are assigning is the actual size, not including the WPF marings
-			var h = bounds.Height - ((WidgetBackend)widget).Frontend.Margin.VerticalSpacing;
-			var w = bounds.Width - ((WidgetBackend)widget).Frontend.Margin.HorizontalSpacing;
-
-			h = (h > 0) ? h : 0;
-			w = (w > 0) ? w : 0;
-
-			// Measure the widget again using the allocation constraints. This is necessary
-			// because WPF widgets my cache some measurement information based on the
-			// constraints provided in the last Measure call (which when calculating the
-			// preferred size is normally set to infinite.
-			element.InvalidateMeasure ();
-			element.Measure (new System.Windows.Size (w, h));
-			element.Height = h;
-			element.Width = w;
-			element.UpdateLayout ();
+			int i = children.IndexOf (widget);
+			if (i == -1) {
+				children.Add (widget);
+				childrenBounds.Add (bounds);
+			}
+			else {
+				childrenBounds[i] = bounds;
+			}
+			Canvas.SetAllocation (children.ToArray (), childrenBounds.ToArray ());
 		}
 
 		public void RemoveChild (IWidgetBackend widget)
@@ -92,6 +95,11 @@ namespace Xwt.WPFBackend
 				throw new ArgumentException ();
 
 			Canvas.Children.Remove (element);
+			int i = children.IndexOf (widget);
+			if (i != -1) {
+				children.RemoveAt (i);
+				childrenBounds.RemoveAt (i);
+			}
 		}
 
 		#endregion

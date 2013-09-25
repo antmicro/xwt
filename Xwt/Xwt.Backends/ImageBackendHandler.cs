@@ -69,11 +69,17 @@ namespace Xwt.Backends
 		/// </summary>
 		/// <returns>The image backend</returns>
 		/// <param name="images">Backends of the different image representations</param>
-		public virtual object CreateMultiSizeImage (IEnumerable<object> images)
+		/// <remarks>The first image of the list if the reference image, the one with scale factor = 1</remarks>
+		public virtual object CreateMultiResolutionImage (IEnumerable<object> images)
 		{
 			throw new NotSupportedException ();
 		}
 		
+		public virtual object CreateMultiSizeIcon (IEnumerable<object> images)
+		{
+			throw new NotSupportedException ();
+		}
+
 		public abstract object LoadFromStream (Stream stream);
 
 		public abstract void SaveToStream (object backend, System.IO.Stream stream, ImageFileType fileType);
@@ -93,7 +99,7 @@ namespace Xwt.Backends
 		/// <param name="handle">Image handle.</param>
 		/// <param name="width">Width.</param>
 		/// <param name="height">Height.</param>
-		public abstract object ConvertToBitmap (object handle, int pixelWidth, int pixelHeight, ImageFormat format);
+		public abstract object ConvertToBitmap (object handle, double width, double height, double scaleFactor, ImageFormat format);
 
 		/// <summary>
 		/// Returns True if the image has multiple representations of different sizes.

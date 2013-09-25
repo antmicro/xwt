@@ -105,8 +105,7 @@ namespace Xwt.WPFBackend
 
 		public virtual void UpdateChildPlacement (IWidgetBackend childBackend)
 		{
-			var w = ((WidgetBackend)childBackend).Frontend;
-			widget.Margin = new Thickness (w.MarginLeft, w.MarginTop, w.MarginRight, w.MarginBottom);
+			WidgetBackend.SetChildPlacement (childBackend);
 		}
 
 		void ChildSizeChanged (object o, SizeChangedEventArgs args)
@@ -154,8 +153,9 @@ namespace Xwt.WPFBackend
 			Window.MinWidth = r.Width;
 		}
 
-		public virtual Size ImplicitMinSize {
-			get { return new Size (0,0); }
+		public virtual void GetMetrics (out Size minSize, out Size decorationSize)
+		{
+			minSize = decorationSize = Size.Zero;
 		}
 	}
 

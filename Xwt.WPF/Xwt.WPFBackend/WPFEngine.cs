@@ -105,6 +105,10 @@ namespace Xwt.WPFBackend
 			RegisterBackend<ISelectColorDialogBackend, SelectColorDialogBackend>();
 			RegisterBackend<IRadioButtonBackend, RadioButtonBackend>();
 			RegisterBackend<ISpinButtonBackend, SpinButtonBackend>();
+			RegisterBackend<ISliderBackend, SliderBackend> ();
+			RegisterBackend<IScrollbarBackend, ScrollbarBackend> ();
+			RegisterBackend<IEmbeddedWidgetBackend, EmbedNativeWidgetBackend>();
+			RegisterBackend<IPasswordEntryBackend, PasswordEntryBackend> ();
 		}
 
 		public override void DispatchPendingEvents()
@@ -151,6 +155,13 @@ namespace Xwt.WPFBackend
 			return new WindowFrameBackend () {
 				Window = (System.Windows.Window) nativeWindow
 			};
+		}
+
+		public override object GetBackendForImage (object nativeImage)
+		{
+			if (nativeImage is WpfImage)
+				return nativeImage;
+			return ImageHandler.LoadFromImageSource ((System.Windows.Media.ImageSource) nativeImage);
 		}
 
 		public override object GetNativeWidget (Widget w)

@@ -125,6 +125,9 @@ namespace Xwt.WPFBackend
 			// This is the area we wish to be visible
 			rectangle = visual.TransformToAncestor (this).TransformBounds (rectangle);
 
+			if (visibleRect == rectangle)
+				return rectangle;
+
 			// The co-ordinates are relative to the visible area, so we need to add the visible area offset
 			// to convert to values we can use in VerticalOffset/HorizontalOffset
 			rectangle.X += visibleRect.X;
@@ -348,7 +351,8 @@ namespace Xwt.WPFBackend
 
 			child.Arrange (new Rect (0, 0, childSize.Width, childSize.Height));
 			child.UpdateLayout ();
-			((IWidgetSurface)(((IWpfWidget)child).Backend.Frontend)).Reallocate ();
+			if (child is IWpfWidget)
+				((IWidgetSurface)(((IWpfWidget)child).Backend.Frontend)).Reallocate ();
 
 			return finalSize;
 		}

@@ -54,6 +54,12 @@ namespace Xwt.Mac
 			pool = new NSAutoreleasePool ();
 			appDelegate = new AppDelegate (IsGuest);
 			NSApplication.SharedApplication.Delegate = appDelegate;
+
+			// If NSPrincipalClass is not set, set it now. This allows running
+			// the application without a bundle
+			var info = NSBundle.MainBundle.InfoDictionary;
+			if (info.ValueForKey ((NSString)"NSPrincipalClass") == null)
+				info.SetValueForKey ((NSString)"NSApplication", (NSString)"NSPrincipalClass");
 		}
 
 		public override void InitializeBackends ()
@@ -113,6 +119,7 @@ namespace Xwt.Mac
 			RegisterBackend <Xwt.Backends.IScrollbarBackend, ScrollbarBackend> ();
 			RegisterBackend <Xwt.Backends.IDatePickerBackend, DatePickerBackend> ();
 			RegisterBackend <Xwt.Backends.ISliderBackend, SliderBackend> ();
+			RegisterBackend <Xwt.Backends.IEmbeddedWidgetBackend, EmbedNativeWidgetBackend> ();
 		}
 
 		public override void RunApplication ()

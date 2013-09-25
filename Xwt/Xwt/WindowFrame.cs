@@ -54,11 +54,12 @@ using Xwt.Backends;
 
 using System.ComponentModel;
 using Xwt.Drawing;
+using Xwt.Motion;
 
 namespace Xwt
 {
 	[BackendType (typeof(IWindowFrameBackend))]
-	public class WindowFrame: XwtComponent
+	public class WindowFrame: XwtComponent, IAnimatable
 	{
 		EventHandler boundsChanged;
 		EventHandler shown;
@@ -252,6 +253,11 @@ namespace Xwt
 			get { return Backend.Visible; }
 			set { Backend.Visible = value; }
 		}
+
+		public double Opacity {
+			get { return Backend.Opacity; }
+			set { Backend.Opacity = value; }
+		}
 		
 		/// <summary>
 		/// Gets or sets a value indicating whether this window is in full screen mode
@@ -371,6 +377,14 @@ namespace Xwt
 		{
 		}
 		
+		void IAnimatable.BatchBegin ()
+		{
+		}
+
+		void IAnimatable.BatchCommit ()
+		{
+		}
+
 		public event EventHandler BoundsChanged {
 			add {
 				boundsChanged += value;

@@ -67,7 +67,7 @@ namespace Xwt.GtkBackend
 				data.Text = (string)val;
 			else if (val is Xwt.Drawing.Image) {
 				var bmp = ((Image)val).ToBitmap ();
-				data.SetPixbuf (((GtkImage)Toolkit.GetBackend (bmp)).Frames[0]);
+				data.SetPixbuf (((GtkImage)Toolkit.GetBackend (bmp)).Frames[0].Pixbuf);
 			}
 			else {
 				var at = Gdk.Atom.Intern (atomType, false);
@@ -223,7 +223,29 @@ namespace Xwt.GtkBackend
 		{
 			return new Color ((double)color.Red / (double)ushort.MaxValue, (double)color.Green / (double)ushort.MaxValue, (double)color.Blue / (double)ushort.MaxValue);
 		}
+
+		public static Pango.EllipsizeMode ToGtkValue (this EllipsizeMode value)
+		{
+			switch (value) {
+			case Xwt.EllipsizeMode.None: return Pango.EllipsizeMode.None;
+			case Xwt.EllipsizeMode.Start: return Pango.EllipsizeMode.Start;
+			case Xwt.EllipsizeMode.Middle: return Pango.EllipsizeMode.Middle;
+			case Xwt.EllipsizeMode.End: return Pango.EllipsizeMode.End;
+			}
+			throw new NotSupportedException ();
+		}
 		
+		public static EllipsizeMode ToXwtValue (this Pango.EllipsizeMode value)
+		{
+			switch (value) {
+			case Pango.EllipsizeMode.None: return Xwt.EllipsizeMode.None;
+			case Pango.EllipsizeMode.Start: return Xwt.EllipsizeMode.Start;
+			case Pango.EllipsizeMode.Middle: return Xwt.EllipsizeMode.Middle;
+			case Pango.EllipsizeMode.End: return Xwt.EllipsizeMode.End;
+			}
+			throw new NotSupportedException ();
+		}
+
 		public static ScrollPolicy ConvertScrollPolicy (Gtk.PolicyType p)
 		{
 			switch (p) {
@@ -280,15 +302,20 @@ namespace Xwt.GtkBackend
             throw new InvalidOperationException("Invalid mouse scroll direction value: " + d);
         }
 
-		public static Gtk.IconSize GetBestSizeFit (double size)
+		public static Gtk.IconSize GetBestSizeFit (double size, Gtk.IconSize[] availablesizes = null)
 		{
 			// Find the size that better fits the requested size
 
 			for (int n=0; n<iconSizes.Length; n++) {
+				if (availablesizes != null && !availablesizes.Contains ((Gtk.IconSize)n))
+					continue;
 				if (size <= iconSizes [n].Width)
 					return (Gtk.IconSize)n;
 			}
-			return Gtk.IconSize.Dialog;
+			if (availablesizes == null || availablesizes.Contains (Gtk.IconSize.Dialog))
+				return Gtk.IconSize.Dialog;
+			else
+				return Gtk.IconSize.Invalid;
 		}
 
 		public static double GetBestSizeFitSize (double size)
@@ -314,6 +341,30 @@ namespace Xwt.GtkBackend
 		public static double GetDefaultScaleFactor ()
 		{
 			return 1;
+		}
+
+		internal static void SetSourceColor (this Cairo.Context cr, Cairo.Color color)
+		{
+			cr.SetSourceRGBA (color.R, color.G, color.B, color.A);
+		}
+
+		//this is needed for building against old Mono.Cairo versions
+		[Obsolete]
+		internal static void SetSource (this Cairo.Context cr, Cairo.Pattern pattern)
+		{
+			cr.Pattern = pattern;
+		}
+
+		[Obsolete]
+		internal static Cairo.Surface GetTarget (this Cairo.Context cr)
+		{
+			return cr.Target;
+		}
+
+		[Obsolete]
+		internal static void Dispose (this Cairo.Context cr)
+		{
+			((IDisposable)cr).Dispose ();
 		}
 	}
 }
