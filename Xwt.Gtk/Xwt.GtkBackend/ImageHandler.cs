@@ -99,6 +99,39 @@ namespace Xwt.GtkBackend
 				p[3] = (byte)(color.Alpha * 255);
 			}
 		}
+
+        // INTRODUCED BY ANTMICRO
+        public override void SetBitmapPixels (object handle, byte[] buffer)
+        {
+            var pix = ((GtkImage)handle).Frames[0].Pixbuf;
+            var bytesCopied = 0;
+
+            unsafe
+            {
+                byte* pixel = (byte*) pix.Pixels;
+                fixed (byte* buffPixelBase = buffer)
+                {
+                    var buffPixel = buffPixelBase;
+                    while (bytesCopied < buffer.Length)
+                    {
+                        // convertion from rgb565 to rgb888
+                        byte blue = (byte)((*buffPixel & 0x1F) * 8); // can be done by shifting
+                        byte green = (byte)((((*(buffPixel + 1) & 0x7) << 3) + (*buffPixel >> 5)) * 4);
+                        byte red = (byte)((*(buffPixel + 1) >> 3) * 8); // can be done by anding
+                        buffPixel += 2;
+                        bytesCopied += 2;
+
+                        // copying value
+                        pixel[0] = red;
+                        pixel[1] = green;
+                        pixel[2] = blue;
+                        pixel[3] = 255;
+                        pixel += 4;
+                    }
+                }
+            }
+        }
+        // INTRODUCED BY ANTMICRO
 		
 		public override Xwt.Drawing.Color GetBitmapPixel (object handle, int x, int y)
 		{
