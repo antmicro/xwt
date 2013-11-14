@@ -25,8 +25,7 @@
 // THE SOFTWARE.
 using System;
 using Xwt.Backends;
-
-using Xwt.Drawing;
+using System.Runtime.InteropServices;
 
 namespace Xwt.GtkBackend
 {
@@ -40,6 +39,13 @@ namespace Xwt.GtkBackend
 		public WindowFrameBackend ()
 		{
 		}
+
+        // INTRODUCED BY ANTMICRO
+        public int Id 
+        {
+            get { return gdk_x11_drawable_get_xid(window.GdkWindow.Handle); }
+        }
+        // ---
 		
 		public Gtk.Window Window {
 			get { return window; }
@@ -312,6 +318,9 @@ namespace Xwt.GtkBackend
 		{
 			minSize = decorationSize = Size.Zero;
 		}
+
+        [DllImport("gdk-x11-2.0")]
+        static extern int gdk_x11_drawable_get_xid(IntPtr drawable);
 	}
 }
 
