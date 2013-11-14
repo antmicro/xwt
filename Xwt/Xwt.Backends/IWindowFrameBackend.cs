@@ -101,6 +101,13 @@ namespace Xwt.Backends
 		/// <value>The screen.</value>
 		object Screen { get; }
 
+        /// INTRODUCED BY ANTMICRO
+        /// <summary>
+        /// Gets the window identifier.
+        /// </summary>
+        /// <value>The identifier.</value>
+        int Id { get; }
+
 		/// <summary>
 		/// Gets the reference to the native window.
 		/// </summary>
