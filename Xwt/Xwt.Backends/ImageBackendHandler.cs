@@ -135,6 +135,10 @@ namespace Xwt.Backends
 		public abstract void SetBitmapPixel (object handle, int x, int y, Color color);
 		
 		public abstract Color GetBitmapPixel (object handle, int x, int y);
+
+        // INTRODUCED BY ANTMICRO
+        public abstract void SetBitmapPixels (object handle, byte[] buffer);
+        // INTRODUCED BY ANTMICRO
 	}
 
 	public delegate void ImageDrawCallback (object contextBackend, Rectangle bounds, ImageDescription idesc, Toolkit toolkit);
