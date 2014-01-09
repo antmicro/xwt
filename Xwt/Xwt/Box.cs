@@ -252,15 +252,20 @@ namespace Xwt
 		protected override void OnReallocate ()
 		{
 			var size = Backend.Size;
-			if (size.Width <= 0 || size.Height <= 0)
-				return;
-			
+
 			var visibleChildren = children.Where (c => c.Child.Visible).ToArray ();
+
 			IWidgetBackend[] widgets = new IWidgetBackend [visibleChildren.Length];
 			Rectangle[] rects = new Rectangle [visibleChildren.Length];
-			
+
+			if (size.Width <= 0 || size.Height <= 0) {
+				var ws = visibleChildren.Select (bp => bp.Child.GetBackend ()).ToArray ();
+				Backend.SetAllocation (ws, new Rectangle[visibleChildren.Length]);
+				return;
+			}
+
 			if (direction == Orientation.Horizontal) {
-				CalcDefaultSizes (size.Width, size.Height);
+				CalcDefaultSizes (size.Width, size.Height, true);
 				double xs = 0;
 				double xe = size.Width + spacing;
 				for (int n=0; n<visibleChildren.Length; n++) {
@@ -277,7 +282,7 @@ namespace Xwt
 						xs += availableWidth + spacing;
 				}
 			} else {
-				CalcDefaultSizes (size.Width, size.Height);
+				CalcDefaultSizes (size.Width, size.Height, true);
 				double ys = 0;
 				double ye = size.Height + spacing;
 				for (int n=0; n<visibleChildren.Length; n++) {
@@ -297,15 +302,15 @@ namespace Xwt
 			Backend.SetAllocation (widgets, rects);
 		}
 		
-		void CalcDefaultSizes (double width, double height)
+		void CalcDefaultSizes (SizeConstraint width, SizeConstraint height, bool allowShrink)
 		{
 			bool vertical = direction == Orientation.Vertical;
 			int nexpands = 0;
 			double requiredSize = 0;
-			double availableSize = vertical ? height : width;
+			double availableSize = vertical ? height.AvailableSize : width.AvailableSize;
 
-			var widthConstraint = vertical ? SizeConstraint.WithSize (width) : SizeConstraint.Unconstrained;
-			var heightConstraint = vertical ? SizeConstraint.Unconstrained : SizeConstraint.WithSize (height);
+			var widthConstraint = vertical ? width : SizeConstraint.Unconstrained;
+			var heightConstraint = vertical ? SizeConstraint.Unconstrained : height;
 
 			var visibleChildren = children.Where (b => b.Child.Visible).ToArray ();
 			var sizes = new Dictionary<BoxPlacement,double> ();
@@ -322,23 +327,23 @@ namespace Xwt
 			}
 			
 			double remaining = availableSize - requiredSize - (spacing * (double)(visibleChildren.Length - 1));
-			if (remaining < 0) {
-				// The box is not big enough to fit the widgets using its natural size.
-				// We have to shrink the widgets.
-				
-				// The total amount we have to shrink
-				double shrinkSize = -remaining;
-				
-				var sizePart = new SizeSplitter (shrinkSize, visibleChildren.Length);
-				foreach (var bp in visibleChildren)
-					bp.NextSize -= sizePart.NextSizePart ();
-			}
-			else {
+			if (remaining > 0) {
 				var expandRemaining = new SizeSplitter (remaining, nexpands);
 				foreach (var bp in visibleChildren) {
 					if (bp.Child.ExpandsForOrientation (direction))
 						bp.NextSize += expandRemaining.NextSizePart ();
 				}
+			}
+			else if (allowShrink && remaining < 0) {
+				// The box is not big enough to fit the widgets using its natural size.
+				// We have to shrink the widgets.
+
+				// The total amount we have to shrink
+				double shrinkSize = -remaining;
+
+				var sizePart = new SizeSplitter (shrinkSize, visibleChildren.Length);
+				foreach (var bp in visibleChildren)
+					bp.NextSize -= sizePart.NextSizePart ();
 			}
 		}
 		
@@ -347,9 +352,18 @@ namespace Xwt
 			Size s = new Size ();
 			int count = 0;
 
+			var visibleChildren = children.Where (b => b.Child.Visible).ToArray ();
+
 			if (direction == Orientation.Horizontal) {
-				foreach (var cw in Children.Where (b => b.Visible)) {
-					var wsize = cw.Surface.GetPreferredSize (SizeConstraint.Unconstrained, heightConstraint, true);
+				// If the width is constrained then we have a total width, and we can calculate the exact width assigned to each child.
+				// We can then use that width as a width constraint for the child.
+
+				if (widthConstraint.IsConstrained)
+					CalcDefaultSizes (widthConstraint, heightConstraint, false); // Calculates the width assigned to each child
+
+				foreach (var cw in visibleChildren) {
+					// Use the calculated width if available
+					var wsize = cw.Child.Surface.GetPreferredSize (widthConstraint.IsConstrained ? cw.NextSize : SizeConstraint.Unconstrained, heightConstraint, true);
 					s.Width += wsize.Width;
 					if (wsize.Height > s.Height)
 						s.Height = wsize.Height;
@@ -358,8 +372,10 @@ namespace Xwt
 				if (count > 0)
 					s.Width += spacing * (double)(count - 1);
 			} else {
-				foreach (var cw in Children.Where (b => b.Visible)) {
-					var wsize = cw.Surface.GetPreferredSize (widthConstraint, SizeConstraint.Unconstrained, true);
+				if (heightConstraint.IsConstrained)
+					CalcDefaultSizes (widthConstraint, heightConstraint, false);
+				foreach (var cw in visibleChildren) {
+					var wsize = cw.Child.Surface.GetPreferredSize (widthConstraint, heightConstraint.IsConstrained ? cw.NextSize : SizeConstraint.Unconstrained, true);
 					s.Height += wsize.Height;
 					if (wsize.Width > s.Width)
 						s.Width = wsize.Width;

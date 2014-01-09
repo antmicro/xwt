@@ -24,9 +24,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
+using System.Linq;
 using Xwt.Backends;
 using System.Collections.Generic;
 using MonoMac.AppKit;
+using MonoMac.Foundation;
 
 namespace Xwt.Mac
 {
@@ -39,6 +41,8 @@ namespace Xwt.Mac
 		Size minSize;
 		Dictionary<DialogButton,Button> buttons = new Dictionary<DialogButton, Button> ();
 		WidgetSpacing buttonBoxPadding = new WidgetSpacing (12, 6, 12, 12);
+
+		bool modalSessionRunning;
 
 		public DialogBackend ()
 		{
@@ -54,15 +58,26 @@ namespace Xwt.Mac
 			};
 			buttonBoxView = ((ViewBackend)buttonBox.GetBackend ()).Widget;
 			ContentView.AddSubview (buttonBoxView);
+
+			WillClose += HandleWillClose;
+		}
+
+		void HandleWillClose (object sender, EventArgs e)
+		{
+			if (modalSessionRunning)
+				EndLoop ();
 		}
 
 		public override void LayoutWindow ()
 		{
 			var frame = ContentView.Frame;
-			var ps = buttonBox.Surface.GetPreferredSize (true);
-			buttonBoxView.Frame = new System.Drawing.RectangleF ((float)buttonBoxPadding.Left, (float)buttonBoxPadding.Bottom, frame.Width - (float)buttonBoxPadding.HorizontalSpacing, (float)ps.Height);
-			buttonBox.Surface.Reallocate ();
-			var boxHeight = (float)ps.Height + (float)buttonBoxPadding.VerticalSpacing;
+			var boxHeight = 0f;
+			if (buttonBox.Children.Any ()) {
+				var ps = buttonBox.Surface.GetPreferredSize (true);
+				buttonBoxView.Frame = new System.Drawing.RectangleF ((float)buttonBoxPadding.Left, (float)buttonBoxPadding.Bottom, frame.Width - (float)buttonBoxPadding.HorizontalSpacing, (float)ps.Height);
+				buttonBox.Surface.Reallocate ();
+				boxHeight = (float)ps.Height + (float)buttonBoxPadding.VerticalSpacing;
+			}
 			LayoutContent (new System.Drawing.RectangleF (0, boxHeight, frame.Width, frame.Height - boxHeight));
 		}
 
@@ -120,11 +135,13 @@ namespace Xwt.Mac
 		public void RunLoop (IWindowFrameBackend parent)
 		{
 			Visible = true;
+			modalSessionRunning = true;
 			NSApplication.SharedApplication.RunModalForWindow (this);
 		}
 
 		public void EndLoop ()
 		{
+			modalSessionRunning = false;
 			NSApplication.SharedApplication.StopModal ();
 		}
 

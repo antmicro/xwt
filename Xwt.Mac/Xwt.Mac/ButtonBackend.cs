@@ -58,6 +58,11 @@ namespace Xwt.Mac
 		
 		public void SetContent (string label, bool useMnemonic, ImageDescription image, ContentPosition imagePosition)
 		{
+			switch (((Button)Frontend).Type) {
+			case ButtonType.Help:
+			case ButtonType.Disclosure:
+				return;
+			}
 			if (useMnemonic)
 				label = label.RemoveMnemonic ();
 			Widget.Title = label ?? "";
@@ -88,7 +93,7 @@ namespace Xwt.Mac
 				break;
 			case ButtonStyle.Borderless:
 			case ButtonStyle.Flat:
-				Widget.BezelStyle = NSBezelStyle.Rounded;
+				Widget.BezelStyle = NSBezelStyle.ShadowlessSquare;
 				Messaging.void_objc_msgSend_bool (Widget.Handle, selSetShowsBorderOnlyWhileMouseInside.Handle, true);
 				break;
 			}
@@ -99,8 +104,17 @@ namespace Xwt.Mac
 		public void SetButtonType (ButtonType type)
 		{
 			switch (type) {
-			case ButtonType.Disclosure: Widget.BezelStyle = NSBezelStyle.Disclosure; break;
-			default: Widget.BezelStyle = NSBezelStyle.Rounded; break;
+			case ButtonType.Disclosure:
+				Widget.BezelStyle = NSBezelStyle.Disclosure;
+				Widget.Title = "";
+				break;
+			case ButtonType.Help:
+				Widget.BezelStyle = NSBezelStyle.HelpButton;
+				Widget.Title = "";
+				break;
+			default:
+				Widget.BezelStyle = NSBezelStyle.Rounded;
+				break;
 			}
 		}
 		

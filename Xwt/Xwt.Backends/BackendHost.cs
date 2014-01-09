@@ -58,6 +58,7 @@ namespace Xwt.Backends
 		{
 			this.backend = backend;
 			usingCustomBackend = true;
+			OnBackendCreated ();
 		}
 		
 		public object Parent { get; internal set; }
@@ -99,7 +100,7 @@ namespace Xwt.Backends
 			return EngineBackend.CreateBackendForFrontend (Parent.GetType ());
 		}
 		
-		public void EnsureBackendLoaded ()
+		internal void EnsureBackendLoaded ()
 		{
 			if (backend == null)
 				LoadBackend ();

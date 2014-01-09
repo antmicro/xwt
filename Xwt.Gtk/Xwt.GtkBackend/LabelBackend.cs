@@ -40,6 +40,7 @@ namespace Xwt.GtkBackend
 		Color? bgColor, textColor;
 		int wrapHeight, wrapWidth;
 		List<LabelLink> links;
+		TextIndexer indexer;
 
 		public LabelBackend ()
 		{
@@ -133,19 +134,27 @@ namespace Xwt.GtkBackend
 
 		LabelLink FindLink (double px, double py)
 		{
-			var x = px * Pango.Scale.PangoScale;
-			var y = py * Pango.Scale.PangoScale;
-
-			int index, trailing;
-			if (!Label.Layout.XyToIndex ((int)x, (int)y, out index, out trailing))
+			if (links == null)
 				return null;
 
-			if (links != null) {
-				foreach (var li in links) {
-					if (index >= li.StartIndex && index <= li.EndIndex)
-						return li;
-				}
-			}
+			var alloc = Label.Allocation;
+
+			int offsetX, offsetY;
+			Label.GetLayoutOffsets (out offsetX, out offsetY);
+
+			var x = (px - offsetX + alloc.X) * Pango.Scale.PangoScale;
+			var y = (py - offsetY + alloc.Y) * Pango.Scale.PangoScale;
+
+			int byteIndex, trailing;
+			if (!Label.Layout.XyToIndex ((int)x, (int)y, out byteIndex, out trailing))
+				return null;
+
+			int index = indexer.ByteIndexToIndex (byteIndex);
+
+			foreach (var li in links)
+				if (byteIndex >= li.StartIndex && byteIndex <= li.EndIndex)
+					return li;
+
 			return null;
 		}
 
@@ -166,14 +175,19 @@ namespace Xwt.GtkBackend
 			Label.Layout.GetPixelSize (out unused, out wrapHeight);
 			if (wrapWidth != args.Allocation.Width || oldHeight != wrapHeight) {
 				wrapWidth = args.Allocation.Width;
-				// GTK renders the text using the calculated pixel width, not the allocated width.
-				// If the calculated width is smaller and text is not left aligned, then a gap is
-				// shown at the right of the label. We then have the adjust the allocation.
-				if (Label.Justify == Gtk.Justification.Right)
-					Label.Xpad = wrapWidth - unused;
-				else if (Label.Justify == Gtk.Justification.Center)
-					Label.Xpad = (wrapWidth - unused) / 2;
 				Label.QueueResize ();
+			}
+			// GTK renders the text using the calculated pixel width, not the allocated width.
+			// If the calculated width is smaller and text is not left aligned, then a gap is
+			// shown at the right of the label. We then have the adjust the allocation.
+			if (Label.Justify == Gtk.Justification.Right) {
+				var w = wrapWidth - unused;
+				if (w != Label.Xpad)
+					Label.Xpad = w;
+			} else if (Label.Justify == Gtk.Justification.Center) {
+				var w = (wrapWidth - unused) / 2;
+				if (w != Label.Xpad)
+					Label.Xpad = w;
 			}
 		}
 
@@ -189,14 +203,18 @@ namespace Xwt.GtkBackend
 		
 		public virtual string Text {
 			get { return Label.Text; }
-			set { Label.Text = value; }
+			set {
+				links = null;
+				indexer = null;
+				Label.Text = value;
+			}
 		}
 
 		public void SetFormattedText (FormattedText text)
 		{
 			Label.Text = text.Text;
 			var list = new FastPangoAttrList ();
-			TextIndexer indexer = new TextIndexer (text.Text);
+			indexer = new TextIndexer (text.Text);
 			list.AddAttributes (indexer, text.Attributes);
 			gtk_label_set_attributes (Label.Handle, list.Handle);
 
@@ -215,6 +233,11 @@ namespace Xwt.GtkBackend
 				}
 				links.Add (ll);
 			}
+
+			if (links == null || links.Count == 0) {
+				links = null;
+				indexer = null;
+			}
 		}
 
 		[DllImport (GtkInterop.LIBGTK, CallingConvention=CallingConvention.Cdecl)]
@@ -222,10 +245,10 @@ namespace Xwt.GtkBackend
 
 		public Xwt.Drawing.Color TextColor {
 			get {
-				return textColor.HasValue ? textColor.Value : Util.ToXwtColor (Widget.Style.Foreground (Gtk.StateType.Normal));
+				return textColor.HasValue ? textColor.Value : Widget.Style.Foreground (Gtk.StateType.Normal).ToXwtValue ();
 			}
 			set {
-				var color = value.ToGdkColor ();
+				var color = value.ToGtkValue ();
 				var attr = new Pango.AttrForeground (color.Red, color.Green, color.Blue);
 				var attrs = new Pango.AttrList ();
 				attrs.Insert (attr);
@@ -237,30 +260,34 @@ namespace Xwt.GtkBackend
 			}
 		}
 
+
+		Alignment alignment;
+
 		public Alignment TextAlignment {
 			get {
-				if (Label.Justify == Gtk.Justification.Left)
-					return Alignment.Start;
-				else if (Label.Justify == Gtk.Justification.Right)
-					return Alignment.End;
-				else
-					return Alignment.Center;
+				return alignment;
 			}
 			set {
-				switch (value) {
-				case Alignment.Start:
-					Label.Justify = Gtk.Justification.Left;
-					Label.Xalign = 0;
-					break;
-				case Alignment.End:
-					Label.Justify = Gtk.Justification.Right;
-					Label.Xalign = 1; 
-					break;
-				case Alignment.Center:
-					Label.Justify = Gtk.Justification.Center;
-					Label.Xalign = 0.5f;
-					break;
-				}
+				alignment = value;
+				SetAlignment ();
+			}
+		}
+
+		void SetAlignment ()
+		{
+			switch (alignment) {
+			case Alignment.Start:
+				Label.Justify = Gtk.Justification.Left;
+				Label.Xalign = 0f;
+				break;
+			case Alignment.End:
+				Label.Justify = Gtk.Justification.Right;
+				Label.Xalign = Label.LineWrap ? 0 : 1;
+				break;
+			case Alignment.Center:
+				Label.Justify = Gtk.Justification.Center;
+				Label.Xalign = Label.LineWrap ? 0 : 0.5f;
+				break;
 			}
 		}
 		
@@ -315,6 +342,7 @@ namespace Xwt.GtkBackend
 						break;
 					}
 				}
+				SetAlignment ();
 			}
 		}
 	}

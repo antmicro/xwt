@@ -102,6 +102,7 @@ namespace Xwt.GtkBackend
 			RegisterBackend<IRadioButtonBackend, RadioButtonBackend> ();
 			RegisterBackend<IScrollbarBackend, ScrollbarBackend> ();
 			RegisterBackend<IPasswordEntryBackend, PasswordEntryBackend> ();
+			RegisterBackend<KeyboardHandler, GtkKeyboardHandler> ();
 		}
 
 		public override void Dispose ()
@@ -233,6 +234,11 @@ namespace Xwt.GtkBackend
 				return nativeImage;
 			else
 				throw new NotSupportedException ();
+		}
+
+		public override object GetBackendForContext (object nativeContext)
+		{
+			return new CairoContextBackend (1) { Context = (Cairo.Context)nativeContext };
 		}
 		
 		public override object GetNativeParentWindow (Widget w)

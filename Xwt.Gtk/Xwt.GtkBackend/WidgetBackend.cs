@@ -354,12 +354,12 @@ namespace Xwt.GtkBackend
 		
 		public virtual Color BackgroundColor {
 			get {
-				return customBackgroundColor.HasValue ? customBackgroundColor.Value : Util.ToXwtColor (Widget.Style.Background (Gtk.StateType.Normal));
+				return customBackgroundColor.HasValue ? customBackgroundColor.Value : Widget.Style.Background (Gtk.StateType.Normal).ToXwtValue ();
 			}
 			set {
 				customBackgroundColor = value;
 				AllocEventBox (visibleWindow: true);
-				EventsRootWidget.ModifyBg (Gtk.StateType.Normal, Util.ToGdkColor (value));
+				EventsRootWidget.ModifyBg (Gtk.StateType.Normal, value.ToGtkValue ());
 			}
 		}
 		
@@ -463,6 +463,10 @@ namespace Xwt.GtkBackend
 			// widgets such as Label which doesn't have its own gdk window
 
 			if (eventBox == null && EventsRootWidget.IsNoWindow) {
+				if (EventsRootWidget is Gtk.EventBox) {
+					((Gtk.EventBox)EventsRootWidget).VisibleWindow = true;
+					return;
+				}
 				eventBox = new Gtk.EventBox ();
 				eventBox.Visible = Widget.Visible;
 				eventBox.Sensitive = Widget.Sensitive;
@@ -695,13 +699,7 @@ namespace Xwt.GtkBackend
 		void HandleKeyPressEvent (object o, Gtk.KeyPressEventArgs args)
 		{
 			Key k = (Key)args.Event.KeyValue;
-			ModifierKeys m = ModifierKeys.None;
-			if ((args.Event.State & Gdk.ModifierType.ShiftMask) != 0)
-				m |= ModifierKeys.Shift;
-			if ((args.Event.State & Gdk.ModifierType.ControlMask) != 0)
-				m |= ModifierKeys.Control;
-			if ((args.Event.State & Gdk.ModifierType.Mod1Mask) != 0)
-				m |= ModifierKeys.Alt;
+			ModifierKeys m = args.Event.State.ToXwtValue ();
 			KeyEventArgs kargs = new KeyEventArgs (k, m, false, (long)args.Event.Time);
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnKeyPressed (kargs);
@@ -713,10 +711,9 @@ namespace Xwt.GtkBackend
         [GLib.ConnectBefore]
         void HandleScrollEvent(object o, Gtk.ScrollEventArgs args)
         {
-            var sc = ConvertToScreenCoordinates (new Point (0, 0));
-            var direction = Util.ConvertScrollDirection(args.Event.Direction);
+			var direction = args.Event.Direction.ToXwtValue ();
 
-            var a = new MouseScrolledEventArgs ((long) args.Event.Time, args.Event.XRoot - sc.X, args.Event.YRoot - sc.Y, direction);
+            var a = new MouseScrolledEventArgs ((long) args.Event.Time, args.Event.X, args.Event.Y, direction);
             ApplicationContext.InvokeUserCode (delegate {
                 EventSink.OnMouseScrolled(a);
             });
@@ -761,8 +758,7 @@ namespace Xwt.GtkBackend
 
 		void HandleMotionNotifyEvent (object o, Gtk.MotionNotifyEventArgs args)
 		{
-			var sc = ConvertToScreenCoordinates (new Point (0, 0));
-			var a = new MouseMovedEventArgs ((long) args.Event.Time, args.Event.XRoot - sc.X, args.Event.YRoot - sc.Y);
+			var a = new MouseMovedEventArgs ((long) args.Event.Time, args.Event.X, args.Event.Y);
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnMouseMoved (a);
 			});
@@ -772,10 +768,9 @@ namespace Xwt.GtkBackend
 
 		void HandleButtonReleaseEvent (object o, Gtk.ButtonReleaseEventArgs args)
 		{
-			var sc = ConvertToScreenCoordinates (new Point (0, 0));
 			var a = new ButtonEventArgs ();
-			a.X = args.Event.XRoot - sc.X;
-			a.Y = args.Event.YRoot - sc.Y;
+			a.X = args.Event.X;
+			a.Y = args.Event.Y;
 			a.Button = (PointerButton) args.Event.Button;
 
             ButtonReleasedInternal(a);
@@ -794,10 +789,10 @@ namespace Xwt.GtkBackend
 		[GLib.ConnectBeforeAttribute]
 		void HandleButtonPressEvent (object o, Gtk.ButtonPressEventArgs args)
 		{
-			var sc = ConvertToScreenCoordinates (new Point (0, 0));
 			var a = new ButtonEventArgs ();
-			a.X = args.Event.XRoot - sc.X;
-			a.Y = args.Event.YRoot - sc.Y;
+			a.X = args.Event.X;
+			a.Y = args.Event.Y;
+
 			a.Button = (PointerButton) args.Event.Button;
 			if (args.Event.Type == Gdk.EventType.TwoButtonPress)
 				a.MultiplePress = 2;

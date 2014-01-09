@@ -35,6 +35,11 @@ namespace Xwt.GtkBackend
 {
 	public class ImageHandler: ImageBackendHandler
 	{
+		public override object LoadFromFile (string file)
+		{
+			return new GtkImage (new Gdk.Pixbuf (file));
+		}
+
 		public override object LoadFromStream (System.IO.Stream stream)
 		{
 			using (Gdk.PixbufLoader loader = new Gdk.PixbufLoader (stream))
@@ -332,14 +337,17 @@ namespace Xwt.GtkBackend
 
 		Gdk.Pixbuf RenderFrame (ApplicationContext actx, double scaleFactor, double width, double height)
 		{
-			using (var sf = new Cairo.ImageSurface (Cairo.Format.ARGB32, (int)(width * scaleFactor), (int)(height * scaleFactor)))
+			var swidth = Math.Max ((int)(width * scaleFactor), 1);
+			var sheight = Math.Max ((int)(height * scaleFactor), 1);
+
+			using (var sf = new Cairo.ImageSurface (Cairo.Format.ARGB32, swidth, sheight))
 			using (var ctx = new Cairo.Context (sf)) {
 				ImageDescription idesc = new ImageDescription () {
 					Alpha = 1,
 					Size = new Size (width * scaleFactor, height * scaleFactor)
 				};
 				Draw (actx, ctx, scaleFactor, 0, 0, idesc);
-				var f = new ImageFrame (ImageBuilderBackend.CreatePixbuf (sf), (int)width, (int)height, true);
+				var f = new ImageFrame (ImageBuilderBackend.CreatePixbuf (sf), Math.Max((int)width,1), Math.Max((int)height,1), true);
 				AddFrame (f);
 				return f.Pixbuf;
 			}

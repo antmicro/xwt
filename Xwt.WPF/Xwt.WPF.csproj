@@ -66,6 +66,7 @@
     <Compile Include="Xwt.WPFBackend\DatePickerBackend.cs" />
     <Compile Include="Xwt.WPFBackend\EmbedNativeWidgetBackend.cs" />
     <Compile Include="Xwt.WPFBackend\PasswordEntryBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\PlaceholderTextAdorner.cs" />
     <Compile Include="Xwt.WPFBackend\ScrollbarBackend.cs" />
     <Compile Include="Xwt.WPFBackend\SliderBackend.cs" />
     <Compile Include="Xwt.WPFBackend\SpinButtonBackend.cs" />
@@ -144,6 +145,7 @@
     <Compile Include="Xwt.WPFBackend\RichTextViewBackend.cs" />
     <Compile Include="Xwt.WPFBackend\WpfDesktopBackend.cs" />
     <Compile Include="Xwt.WPFBackend\WindowsSpinButton.xaml.cs" />
+    <Compile Include="Xwt.WPFBackend\WpfKeyboardHandler.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

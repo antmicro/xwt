@@ -162,7 +162,7 @@ namespace Xwt.Mac
 				((NSControl)view).Enabled = parentIsSensitive && sensitive;
 
 			foreach (var s in view.Subviews) {
-				if (s is IViewObject)
+				if ((s is IViewObject) && (((IViewObject)s).Backend != null))
 					((IViewObject)s).Backend.UpdateSensitiveStatus (s, parentIsSensitive);
 				else
 					UpdateSensitiveStatus (s, sensitive && parentIsSensitive);
@@ -327,8 +327,8 @@ namespace Xwt.Mac
 		public static void ReplaceSubview (NSView oldChild, NSView newChild)
 		{
 			var vo = oldChild as IViewObject;
-			if (vo != null && vo.Backend.Frontend.Parent != null) {
-				var ba = vo.Backend.Frontend.Parent.GetBackend () as ViewBackend;
+			if (vo != null && vo.Backend.Frontend.GetInternalParent () != null) {
+				var ba = vo.Backend.Frontend.GetInternalParent ().GetBackend () as ViewBackend;
 				if (ba != null) {
 					ba.ReplaceChild (oldChild, newChild);
 					return;
@@ -348,17 +348,23 @@ namespace Xwt.Mac
 
 		public virtual object Font {
 			get {
-				if (Widget is NSControl)
-					return ((NSControl)(object)Widget).Font;
-				if (Widget is NSText)
-					return ((NSText)(object)Widget).Font;
+				var widget = Widget;
+				if (widget is CustomAlignedContainer)
+					widget = ((CustomAlignedContainer)widget).Child;
+				if (widget is NSControl)
+					return ((NSControl)(object)widget).Font;
+				if (widget is NSText)
+					return ((NSText)(object)widget).Font;
 				return NSFont.ControlContentFontOfSize (NSFont.SystemFontSize);
 			}
 			set {
-				if (Widget is NSControl)
-					((NSControl)(object)Widget).Font = (NSFont) value;
-				if (Widget is NSText)
-					((NSText)(object)Widget).Font = (NSFont) value;
+				var widget = Widget;
+				if (widget is CustomAlignedContainer)
+					widget = ((CustomAlignedContainer)widget).Child;
+				if (widget is NSControl)
+					((NSControl)(object)widget).Font = (NSFont) value;
+				if (widget is NSText)
+					((NSText)(object)widget).Font = (NSFont) value;
 				ResetFittingSize ();
 			}
 		}

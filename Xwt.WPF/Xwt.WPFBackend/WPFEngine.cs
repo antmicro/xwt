@@ -42,6 +42,13 @@ namespace Xwt.WPFBackend
 	{
 		System.Windows.Application application;
 
+		public static WPFEngine Instance { get; private set; }
+
+		public WPFEngine ()
+		{
+			Instance = this;
+		}
+
 		public override void InitializeApplication ()
 		{
 			application = System.Windows.Application.Current;
@@ -109,6 +116,7 @@ namespace Xwt.WPFBackend
 			RegisterBackend<IScrollbarBackend, ScrollbarBackend> ();
 			RegisterBackend<IEmbeddedWidgetBackend, EmbedNativeWidgetBackend>();
 			RegisterBackend<IPasswordEntryBackend, PasswordEntryBackend> ();
+			RegisterBackend<KeyboardHandler, WpfKeyboardHandler> ();
 		}
 
 		public override void DispatchPendingEvents()
