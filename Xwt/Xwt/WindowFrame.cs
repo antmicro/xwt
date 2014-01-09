@@ -74,6 +74,13 @@ namespace Xwt
 		Image icon;
 		#pragma warning restore 0649
 		WindowFrame transientFor;
+
+        // INTRODUCED BY ANTMICRO
+        public int Id
+        {
+            get { return Backend.Id; }
+        }
+        // ---
 		
 		protected class WindowBackendHost: BackendHost<WindowFrame,IWindowFrameBackend>, IWindowFrameEventSink
 		{

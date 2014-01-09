@@ -92,6 +92,13 @@ namespace Xwt.Backends
 		/// </summary>
 		/// <value>The screen.</value>
 		object Screen { get; }
+
+        /// INTRODUCED BY ANTMICRO
+        /// <summary>
+        /// Gets the window identifier.
+        /// </summary>
+        /// <value>The identifier.</value>
+        int Id { get; }
 	}
 	
 	public interface IWindowFrameEventSink
