@@ -501,6 +501,7 @@ namespace Xwt.GtkBackend
 			ctx.Scale (idesc.Size.Width / (double)img.Width, idesc.Size.Height / (double)img.Height);
 			Gdk.CairoHelper.SetSourcePixbuf (ctx, img, 0, 0);
 
+            /*
 			#pragma warning disable 618
 			using (var p = ctx.Source) {
 				var pattern = p as Cairo.SurfacePattern;
@@ -513,6 +514,7 @@ namespace Xwt.GtkBackend
 				}
 			}
 			#pragma warning restore 618
+            */
 
 			if (idesc.Alpha >= 1)
 				ctx.Paint ();
