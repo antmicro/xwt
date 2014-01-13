@@ -433,6 +433,7 @@ namespace Xwt.GtkBackend
 			ctx.Scale (idesc.Size.Width / (double)img.Width, idesc.Size.Height / (double)img.Height);
 			Gdk.CairoHelper.SetSourcePixbuf (ctx, img, 0, 0);
 
+            /*
 			#pragma warning disable 618
 			if (idesc.Size.Width > img.Width || idesc.Size.Height > img.Height) {
 				// Fixes blur issue when rendering on an image surface
@@ -440,6 +441,7 @@ namespace Xwt.GtkBackend
 			} else
 				((Cairo.SurfacePattern)ctx.Source).Filter = Cairo.Filter.Good;
 			#pragma warning restore 618
+            */
 
 			if (idesc.Alpha >= 1)
 				ctx.Paint ();
