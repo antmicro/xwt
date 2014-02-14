@@ -24,6 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
+using Xwt.Backends;
 
 namespace Xwt.Drawing
 {
@@ -68,10 +69,10 @@ namespace Xwt.Drawing
 		}
 
         // INTRODUCED BY ANTMICRO
-        public void SetPixels (byte[] buffer)
+        public void SetPixels (byte[] buffer, ImagePixelFormat format)
         {
             MakeWrittable();
-            ToolkitEngine.ImageBackendHandler.SetBitmapPixels (Backend, buffer);
+            ToolkitEngine.ImageBackendHandler.SetBitmapPixels (Backend, buffer, format);
         }
         // INTRODUCED BY ANTMICRO
 		
