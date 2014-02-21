@@ -145,7 +145,7 @@ namespace Xwt.Backends
 	{
 		BGR888,
 		RGB565,
-		ARGB8888
+		BGRA8888
 	}
 
 	public delegate void ImageDrawCallback (object contextBackend, Rectangle bounds, ImageDescription idesc, Toolkit toolkit);

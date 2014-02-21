@@ -150,12 +150,12 @@ namespace Xwt.GtkBackend
                             bytesCopied += 3;
                             pixel += 4;
                         }
-                        else if (format == ImagePixelFormat.ARGB8888)
+                        else if (format == ImagePixelFormat.BGRA8888)
                         {
-                            pixel[0] = *(buffPixel + 1);
-                            pixel[1] = *(buffPixel + 2);
-                            pixel[2] = *(buffPixel + 3);
-                            pixel[3] = *(buffPixel + 0);
+                            pixel[0] = *(buffPixel + 2);
+                            pixel[1] = *(buffPixel + 1);
+                            pixel[2] = *(buffPixel + 0);
+                            pixel[3] = 255;//*(buffPixel + 3);
                             buffPixel += 4;
                             bytesCopied += 4;
                             pixel += 4;
