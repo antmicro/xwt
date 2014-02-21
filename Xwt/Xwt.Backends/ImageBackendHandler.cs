@@ -137,7 +137,8 @@ namespace Xwt.Backends
     public enum ImagePixelFormat
     {
         BGR888,
-        RGB565
+        RGB565,
+        ARGB8888
     }
 
 	public delegate void ImageDrawCallback (object contextBackend, Rectangle bounds);
