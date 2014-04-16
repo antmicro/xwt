@@ -105,64 +105,7 @@ namespace Xwt.GtkBackend
 			}
 		}
 
-        // INTRODUCED BY ANTMICRO
-        public override void SetBitmapPixels (object handle, byte[] buffer, ImagePixelFormat format)
-        {
-            var pix = ((GtkImage)handle).Frames[0].Pixbuf;
-            var bytesCopied = 0;
-
-            unsafe
-            {
-                byte* pixel = (byte*) pix.Pixels;
-                fixed (byte* buffPixelBase = buffer)
-                {
-                    var buffPixel = buffPixelBase;
-                    while (bytesCopied < buffer.Length)
-                    {
-                        if (/*true ||*/ format == ImagePixelFormat.RGB565)
-                        {
-                            // convertion from rgb565 to rgb888
-                            byte blue = (byte)((*buffPixel & 0x1F) * 8); // can be done by shifting
-                            byte green = (byte)((((*(buffPixel + 1) & 0x7) << 3) + (*buffPixel >> 5)) * 4);
-                            byte red = (byte)((*(buffPixel + 1) >> 3) * 8); // can be done by anding
-                            buffPixel += 2;
-                            bytesCopied += 2;
-
-                            // copying value
-                            pixel[0] = red;
-                            pixel[1] = green;
-                            pixel[2] = blue;
-                            pixel[3] = 255;
-                            pixel += 4;
-                        }
-                        else if (format == ImagePixelFormat.BGR888)
-                        {
-                            pixel[0] = *(buffPixel + 2);
-                            pixel[1] = *(buffPixel + 1);
-                            pixel[2] = *(buffPixel + 0);
-                            pixel[3] = 255;
-                            buffPixel += 3;
-                            bytesCopied += 3;
-                            pixel += 4;
-                        }
-                        else if (format == ImagePixelFormat.BGRA8888)
-                        {
-                            pixel[0] = *(buffPixel + 2);
-                            pixel[1] = *(buffPixel + 1);
-                            pixel[2] = *(buffPixel + 0);
-                            pixel[3] = 255;//*(buffPixel + 3);
-                            buffPixel += 4;
-                            bytesCopied += 4;
-                            pixel += 4;
-                        }
-                        else
-                        {
-                            throw new ArgumentOutOfRangeException("format");
-                        }
-                    }
-                }
-            }
-        }
+       
         // INTRODUCED BY ANTMICRO
 		
 		public override Xwt.Drawing.Color GetBitmapPixel (object handle, int x, int y)
