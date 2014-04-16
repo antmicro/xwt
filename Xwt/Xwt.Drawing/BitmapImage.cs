@@ -72,12 +72,7 @@ namespace Xwt.Drawing
 			} while (nr != NativeRef);
 		}
 
-        // INTRODUCED BY ANTMICRO
-        public void SetPixels (byte[] buffer, ImagePixelFormat format)
-        {
-            MakeWrittable();
-            ToolkitEngine.ImageBackendHandler.SetBitmapPixels (Backend, buffer, format);
-        }
+       
         // INTRODUCED BY ANTMICRO
 		
 		public Color GetPixel (int x, int y)
