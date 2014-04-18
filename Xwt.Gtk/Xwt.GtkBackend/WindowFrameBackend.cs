@@ -241,7 +241,13 @@ namespace Xwt.GtkBackend
 
 		public void SetIcon(ImageDescription icon)
 		{
-			// TODO
+            // --- Introduced by Antmicro
+            Gdk.Pixbuf b = ((GtkImage)icon.Backend).Frames[0].Pixbuf;
+            if (b != null)
+            {
+                window.Icon = b;
+            }
+            // --- Introduced by Antmicro
 		}
 		#endregion
 
