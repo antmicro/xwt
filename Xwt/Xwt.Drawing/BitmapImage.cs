@@ -72,6 +72,12 @@ namespace Xwt.Drawing
 			} while (nr != NativeRef);
 		}
 
+    // INTRODUCED BY ANTMICRO
+    public void SetPixelDirectly(int x, int y, Color color)
+    {
+        ToolkitEngine.ImageBackendHandler.SetBitmapPixel (Backend, x, y, color);
+    }
+		
 		public Color GetPixel (int x, int y)
 		{
 			return ToolkitEngine.ImageBackendHandler.GetBitmapPixel (Backend, x, y);
