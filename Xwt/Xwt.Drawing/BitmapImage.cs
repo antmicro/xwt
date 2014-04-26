@@ -76,6 +76,10 @@ namespace Xwt.Drawing
 
         public void SetPixelDirectly(int x, int y, Color color)
         {
+            if(((uint)x) > PixelWidth || ((uint)y) > PixelHeight)
+            {
+                return;
+            }
             ToolkitEngine.ImageBackendHandler.SetBitmapPixel (Backend, x, y, color);
         }
        
