@@ -51,6 +51,16 @@ namespace Xwt.Mac
 			{
 				Backend.EventSink.OnRowExpanding (((TreeItem)notification.UserInfo["NSObject"]).Position);
 			}
+
+			public override void ItemDidCollapse (NSNotification notification)
+			{
+				Backend.EventSink.OnRowCollapsed (((TreeItem)notification.UserInfo["NSObject"]).Position);
+			}
+
+			public override void ItemWillCollapse (NSNotification notification)
+			{
+				Backend.EventSink.OnRowCollapsing (((TreeItem)notification.UserInfo["NSObject"]).Position);
+			}		
 		}
 		
 		NSOutlineView Tree {
@@ -152,7 +162,7 @@ namespace Xwt.Mac
 		{
 			var it = tsource.GetItem (pos);
 			if (it != null)
-				Tree.ScrollRowToVisible (Tree.RowForItem (it));
+				ScrollToRow (Tree.RowForItem (it));
 		}
 		
 		public void ExpandToRow (TreePosition pos)

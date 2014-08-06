@@ -237,7 +237,7 @@ namespace Xwt
 
 		public Image Icon {
 			get { return icon; }
-			set { icon = value; Backend.SetIcon (icon != null ? icon.ImageDescription : ImageDescription.Null); }
+			set { icon = value; Backend.SetIcon (icon != null ? icon.GetImageDescription (BackendHost.ToolkitEngine) : ImageDescription.Null); }
 		}
 		
 		public bool Decorated {
@@ -266,6 +266,12 @@ namespace Xwt
 		public bool Visible {
 			get { return Backend.Visible; }
 			set { Backend.Visible = value; }
+		}
+
+		[DefaultValue (true)]
+		public bool Sensitive {
+			get { return Backend.Sensitive; }
+			set { Backend.Sensitive = value; }
 		}
 
 		public double Opacity {
@@ -349,7 +355,7 @@ namespace Xwt
 		/// <summary>
 		/// Called to check if the window can be closed
 		/// </summary>
-		/// <returns><c>true<c> if the window can be closed, <c>false</c> otherwise</returns>
+		/// <returns><c>true</c> if the window can be closed, <c>false</c> otherwise</returns>
 		protected virtual bool OnCloseRequested ()
 		{
 			if (closeRequested == null)

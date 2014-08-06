@@ -26,6 +26,8 @@
 using System;
 using Xwt.Backends;
 using System.Runtime.InteropServices;
+using Xwt.Drawing;
+using System.Linq;
 
 namespace Xwt.GtkBackend
 {
@@ -88,6 +90,8 @@ namespace Xwt.GtkBackend
 		{
 			this.eventSink = eventSink;
 			Initialize ();
+
+			#if !XWT_GTK3
 			Window.SizeRequested += delegate(object o, Gtk.SizeRequestedArgs args) {
 				if (!Window.Resizable) {
 					int w = args.Requisition.Width, h = args.Requisition.Height;
@@ -98,6 +102,7 @@ namespace Xwt.GtkBackend
 					args.Requisition = new Gtk.Requisition () { Width = w, Height = h };
 				}
 			};
+			#endif
 		}
 		
 		public virtual void Initialize ()
@@ -165,6 +170,15 @@ namespace Xwt.GtkBackend
 			}
 			set {
 				window.Visible = value;
+			}
+		}
+
+		bool IWindowFrameBackend.Sensitive {
+			get {
+				return window.Sensitive;
+			}
+			set {
+				window.Sensitive = value;
 			}
 		}
 
@@ -241,13 +255,7 @@ namespace Xwt.GtkBackend
 
 		public void SetIcon(ImageDescription icon)
 		{
-            // --- Introduced by Antmicro
-            Gdk.Pixbuf b = ((GtkImage)icon.Backend).Frames[0].Pixbuf;
-            if (b != null)
-            {
-                window.Icon = b;
-            }
-            // --- Introduced by Antmicro
+			Window.IconList = ((GtkImage)icon.Backend).Frames.Select (f => f.Pixbuf).ToArray ();
 		}
 		#endregion
 
