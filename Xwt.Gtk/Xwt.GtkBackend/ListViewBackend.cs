@@ -221,6 +221,14 @@ namespace Xwt.GtkBackend
 			}
 			CurrentEventRow = int.Parse (path);
 		}
+
+        /* INTRODUCED BY houen */
+        public override void SetCurrentEventRow(string path)
+        {
+            SelectRow(int.Parse(path));
+            //base.SetCurrentEventRow(path);
+        }
+        /* INTRODUCED BY houen */
 	}
 }
 
