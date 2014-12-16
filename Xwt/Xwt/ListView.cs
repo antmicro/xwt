@@ -78,8 +78,6 @@ namespace Xwt
 		{
 			columns = new ListViewColumnCollection (this);
 			VerticalScrollPolicy = HorizontalScrollPolicy = ScrollPolicy.Automatic;
-
-            Backend.EnableEvent(WidgetEvent.ButtonPressed);
 		}
 		
 		protected override BackendHost CreateBackendHost ()
