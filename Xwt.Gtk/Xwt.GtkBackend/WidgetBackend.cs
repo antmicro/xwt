@@ -157,17 +157,8 @@ namespace Xwt.GtkBackend
 		
 		public virtual void SetFocus ()
 		{
-			Widget.IsFocus = true;
-//			SetFocus (Widget);
-		}
-
-		void SetFocus (Gtk.Widget w)
-		{
-			if (w.Parent != null)
-				SetFocus (w.Parent);
-			w.GrabFocus ();
-			w.IsFocus = true;
-			w.HasFocus = true;
+			if (CanGetFocus)
+				Widget.GrabFocus ();
 		}
 
 		public string TooltipText {
@@ -227,25 +218,29 @@ namespace Xwt.GtkBackend
 
 			gdkCursor = gc;
 
-			if (EventsRootWidget.GdkWindow == null)
-				SubscribeRealizedEvent ();
-			else
-				EventsRootWidget.GdkWindow.Cursor = gc;
-		}
+			// subscribe mouse entered/leaved events, when widget gets/is realized
+			RunWhenRealized(SubscribeCursorEnterLeaveEvent);
 
-		bool realizedEventSubscribed;
-		void SubscribeRealizedEvent ()
-		{
-			if (!realizedEventSubscribed) {
-				realizedEventSubscribed = true;
-				EventsRootWidget.Realized += OnRealized;
-			}
-		}
-
-		void OnRealized (Object s, EventArgs e)
-		{
-			if (gdkCursor != null)
+			if (immediateCursorChange) // if realized and mouse inside set immediatly
 				EventsRootWidget.GdkWindow.Cursor = gdkCursor;
+		}
+
+		bool cursorEnterLeaveSubscribed, immediateCursorChange;
+		void SubscribeCursorEnterLeaveEvent ()
+		{
+			if (!cursorEnterLeaveSubscribed) {
+				cursorEnterLeaveSubscribed = true; // subscribe only once
+				EventsRootWidget.AddEvents ((int)Gdk.EventMask.EnterNotifyMask);
+				EventsRootWidget.AddEvents ((int)Gdk.EventMask.LeaveNotifyMask);
+				EventsRootWidget.EnterNotifyEvent += (o, args) => {
+					immediateCursorChange = true;
+					if (gdkCursor != null) ((Gtk.Widget)o).GdkWindow.Cursor = gdkCursor;
+				};
+				EventsRootWidget.LeaveNotifyEvent += (o, args) => {
+					immediateCursorChange = false;
+					((Gtk.Widget)o).GdkWindow.Cursor = null;
+				};
+			}
 		}
 		
 		~WidgetBackend ()
@@ -306,26 +301,6 @@ namespace Xwt.GtkBackend
 			y += a.Y;
 			return new Point (x + widgetCoordinates.X, y + widgetCoordinates.Y);
 		}
-
-		public void SetMinSize (double width, double height)
-		{
-			if (width != -1 || height != -1) {
-				EnableSizeCheckEvents ();
-				minSizeSet = true;
-				Widget.QueueResize ();
-			}
-			else {
-				minSizeSet = false;
-				DisableSizeCheckEvents ();
-				Widget.QueueResize ();
-			}
-		}
-		
-		public void SetSizeRequest (double width, double height)
-		{
-			Widget.WidthRequest = (int)width;
-			Widget.HeightRequest = (int)height;
-		}
 		
 		Pango.FontDescription customFont;
 		
@@ -363,6 +338,12 @@ namespace Xwt.GtkBackend
 		
 		protected virtual Gtk.Widget EventsRootWidget {
 			get { return eventBox ?? Widget; }
+		}
+
+		bool needsEventBox = true; // require event box by default
+		protected virtual bool NeedsEventBox {
+			get { return needsEventBox; }
+			set { needsEventBox = value; }
 		}
 		
 		public static Gtk.Widget GetWidget (IWidgetBackend w)
@@ -451,6 +432,8 @@ namespace Xwt.GtkBackend
 		{
 			// Wraps the widget with an event box. Required for some
 			// widgets such as Label which doesn't have its own gdk window
+
+			if (!NeedsEventBox) return;
 
 			if (eventBox == null && !EventsRootWidget.GetHasWindow()) {
 				if (EventsRootWidget is Gtk.EventBox) {
@@ -627,6 +610,18 @@ namespace Xwt.GtkBackend
 		[GLib.ConnectBefore]
 		void HandleKeyReleaseEvent (object o, Gtk.KeyReleaseEventArgs args)
 		{
+			KeyEventArgs kargs = GetKeyReleaseEventArgs (args);
+			if (kargs == null)
+				return;
+			ApplicationContext.InvokeUserCode (delegate {
+				EventSink.OnKeyReleased (kargs);
+			});
+			if (kargs.Handled)
+				args.RetVal = true;
+		}
+
+		protected virtual KeyEventArgs GetKeyReleaseEventArgs (Gtk.KeyReleaseEventArgs args)
+		{
 			Key k = (Key)args.Event.KeyValue;
 			ModifierKeys m = ModifierKeys.None;
 			if ((args.Event.State & Gdk.ModifierType.ShiftMask) != 0)
@@ -635,20 +630,16 @@ namespace Xwt.GtkBackend
 				m |= ModifierKeys.Control;
 			if ((args.Event.State & Gdk.ModifierType.Mod1Mask) != 0)
 				m |= ModifierKeys.Alt;
-			KeyEventArgs kargs = new KeyEventArgs (k, m, false, (long)args.Event.Time);
-			ApplicationContext.InvokeUserCode (delegate {
-				EventSink.OnKeyReleased (kargs);
-			});
-			if (kargs.Handled)
-				args.RetVal = true;
+
+			return new KeyEventArgs (k, (int)args.Event.KeyValue, m, false, (long)args.Event.Time);
 		}
 
 		[GLib.ConnectBefore]
 		void HandleKeyPressEvent (object o, Gtk.KeyPressEventArgs args)
 		{
-			Key k = (Key)args.Event.KeyValue;
-			ModifierKeys m = args.Event.State.ToXwtValue ();
-			KeyEventArgs kargs = new KeyEventArgs (k, m, false, (long)args.Event.Time);
+			KeyEventArgs kargs = GetKeyPressEventArgs (args);
+			if (kargs == null)
+				return;
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnKeyPressed (kargs);
 			});
@@ -656,18 +647,33 @@ namespace Xwt.GtkBackend
 				args.RetVal = true;
 		}
 
+		protected virtual KeyEventArgs GetKeyPressEventArgs (Gtk.KeyPressEventArgs args)
+		{
+			Key k = (Key)args.Event.KeyValue;
+			ModifierKeys m = args.Event.State.ToXwtValue ();
+
+			return new KeyEventArgs (k, (int)args.Event.KeyValue, m, false, (long)args.Event.Time);
+		}
+
         [GLib.ConnectBefore]
         void HandleScrollEvent(object o, Gtk.ScrollEventArgs args)
         {
-			var direction = args.Event.Direction.ToXwtValue ();
-
-            var a = new MouseScrolledEventArgs ((long) args.Event.Time, args.Event.X, args.Event.Y, direction);
+			var a = GetScrollEventArgs (args);
+			if (a == null)
+				return;
             ApplicationContext.InvokeUserCode (delegate {
                 EventSink.OnMouseScrolled(a);
             });
             if (a.Handled)
                 args.RetVal = true;
-        }
+		}
+
+		protected virtual MouseScrolledEventArgs GetScrollEventArgs (Gtk.ScrollEventArgs args)
+		{
+			var direction = args.Event.Direction.ToXwtValue ();
+			var pointer_coords = EventsRootWidget.CheckPointerCoordinates (args.Event.Window, args.Event.X, args.Event.Y);
+			return new MouseScrolledEventArgs ((long) args.Event.Time, pointer_coords.X, pointer_coords.Y, direction);
+		}
         
 
 		void HandleWidgetFocusOutEvent (object o, Gtk.FocusOutEventArgs args)
@@ -704,9 +710,13 @@ namespace Xwt.GtkBackend
 			});
 		}
 
+		protected virtual void OnEnterNotifyEvent (Gtk.EnterNotifyEventArgs args) {}
+
 		void HandleMotionNotifyEvent (object o, Gtk.MotionNotifyEventArgs args)
 		{
-			var a = new MouseMovedEventArgs ((long) args.Event.Time, args.Event.X, args.Event.Y);
+			var a = GetMouseMovedEventArgs (args);
+			if (a == null)
+				return;
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnMouseMoved (a);
 			});
@@ -714,14 +724,21 @@ namespace Xwt.GtkBackend
 				args.RetVal = true;
 		}
 
+		protected virtual MouseMovedEventArgs GetMouseMovedEventArgs (Gtk.MotionNotifyEventArgs args)
+		{
+			var pointer_coords = EventsRootWidget.CheckPointerCoordinates (args.Event.Window, args.Event.X, args.Event.Y);
+			return new MouseMovedEventArgs ((long) args.Event.Time, pointer_coords.X, pointer_coords.Y);
+		}
+
 		void HandleButtonReleaseEvent (object o, Gtk.ButtonReleaseEventArgs args)
 		{
-			var a = new ButtonEventArgs ();
-			a.X = args.Event.X;
-			a.Y = args.Event.Y;
-			a.Button = (PointerButton) args.Event.Button;
+			var a = GetButtonReleaseEventArgs (args);
+			if (a == null)
+				return;
 
+            // TODO: check if this is still necessary!
             ButtonReleasedInternal(a);
+            // end of TODO
 
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnButtonReleased (a);
@@ -734,12 +751,43 @@ namespace Xwt.GtkBackend
         {
         }
 
+		protected virtual ButtonEventArgs GetButtonReleaseEventArgs (Gtk.ButtonReleaseEventArgs args)
+		{
+			var a = new ButtonEventArgs ();
+
+			var pointer_coords = EventsRootWidget.CheckPointerCoordinates (args.Event.Window, args.Event.X, args.Event.Y);
+			a.X = pointer_coords.X;
+			a.Y = pointer_coords.Y;
+
+			a.Button = (PointerButton) args.Event.Button;
+			return a;
+		}
+
 		[GLib.ConnectBeforeAttribute]
 		void HandleButtonPressEvent (object o, Gtk.ButtonPressEventArgs args)
 		{
+			var a = GetButtonPressEventArgs (args);
+			if (a == null)
+				return;
+
+            // TODO: check if this is still necessary!!!
+            ButtonPressedInternal(a);
+            // end of TODO
+
+			ApplicationContext.InvokeUserCode (delegate {
+				EventSink.OnButtonPressed (a);
+			});
+			if (a.Handled)
+				args.RetVal = true;
+		}
+
+		protected virtual ButtonEventArgs GetButtonPressEventArgs (Gtk.ButtonPressEventArgs args)
+		{
 			var a = new ButtonEventArgs ();
-			a.X = args.Event.X;
-			a.Y = args.Event.Y;
+
+			var pointer_coords = EventsRootWidget.CheckPointerCoordinates (args.Event.Window, args.Event.X, args.Event.Y);
+			a.X = pointer_coords.X;
+			a.Y = pointer_coords.Y;
 
 			a.Button = (PointerButton) args.Event.Button;
 			if (args.Event.Type == Gdk.EventType.TwoButtonPress)
@@ -748,14 +796,7 @@ namespace Xwt.GtkBackend
 				a.MultiplePress = 3;
 			else
 				a.MultiplePress = 1;
-
-            ButtonPressedInternal(a);
-
-			ApplicationContext.InvokeUserCode (delegate {
-				EventSink.OnButtonPressed (a);
-			});
-			if (a.Handled)
-				args.RetVal = true;
+			return a;
 		}
 
         protected virtual void ButtonPressedInternal(ButtonEventArgs a)

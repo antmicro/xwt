@@ -54,6 +54,8 @@ namespace Xwt.WPFBackend
 	                return null;
 	        }
         }
+
+        public int CurrentEventRow { get; set;  }
 		
 		public ScrollPolicy VerticalScrollPolicy {
 			get { return ScrollViewer.GetVerticalScrollBarVisibility (this.ListView).ToXwtScrollPolicy (); }
@@ -135,6 +137,21 @@ namespace Xwt.WPFBackend
 
 		public int[] SelectedRows {
 			get { return ListView.SelectedItems.Cast<object>().Select (ListView.Items.IndexOf).ToArray (); }
+		}
+
+		public int FocusedRow {
+			get {
+				if (ListView.FocusedItem != null)
+					return ListView.ItemContainerGenerator.IndexFromContainer(ListView.FocusedItem);
+				return -1;
+			}
+			set {
+				ListViewItem item = null;
+				if (value >= 0) {
+					item = ListView.ItemContainerGenerator.ContainerFromIndex(value) as ListViewItem;
+				}
+				ListView.FocusItem(item);
+			}
 		}
 
 		public object AddColumn (ListViewColumn col)

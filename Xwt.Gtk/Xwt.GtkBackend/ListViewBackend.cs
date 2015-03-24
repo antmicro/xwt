@@ -122,6 +122,26 @@ namespace Xwt.GtkBackend
 			}
 		}
 
+		public int FocusedRow {
+			get {
+				Gtk.TreePath path;
+				Gtk.TreeViewColumn column;
+				Widget.GetCursor (out path, out column);
+				if (path == null)
+					return -1;
+				return path.Indices [0];
+			}
+			set {
+				Gtk.TreePath path = new Gtk.TreePath (new [] { value >= 0 ? value : int.MaxValue });
+				Widget.SetCursor (path, null, false);
+			}
+		}
+
+		public int CurrentEventRow {
+			get;
+			internal set;
+		}
+
 		public bool BorderVisible {
 			get {
 				return ScrolledWindow.ShadowType == Gtk.ShadowType.In;
@@ -180,13 +200,17 @@ namespace Xwt.GtkBackend
 			return new Rectangle (x, y, w, h);
 		}
 
-        /* INTRODUCED BY houen */
-        public override void SetCurrentEventRow(string path)
-        {
+		public override void SetCurrentEventRow (string path)
+		{
+			if (path.Contains (":")) {
+				path = path.Split (':') [0];
+			}
+			CurrentEventRow = int.Parse (path);
+
+            // TODO: check if this is still necessary!!!
             SelectRow(int.Parse(path));
-            //base.SetCurrentEventRow(path);
-        }
-        /* INTRODUCED BY houen */
+            // end of TODO
+		}
 	}
 }
 
