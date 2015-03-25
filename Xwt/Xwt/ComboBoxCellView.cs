@@ -24,15 +24,51 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-
-
 using System;
 using Xwt.Drawing;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using Xwt.Backends;
+using System.Linq;
 
 namespace Xwt {
-	public sealed class ComboBoxCellView: CellView
-	{
-	}
+    public sealed class ComboBoxCellView: CellView, IComboBoxCellViewFrontend
+    {
+        public ComboBoxCellViewElement[] Items {
+            get {
+                return GetValue(options, new ComboBoxCellViewElement[0]).ToArray();
+            }
+        }
+
+        ComboBoxCellViewElement IComboBoxCellViewFrontend.Selected {
+            get {
+                var v = GetValue(ValueField);
+                return v == null ? null : new ComboBoxCellViewElement(v);
+            }
+        }
+        
+        public IDataField<ComboBoxCellViewElement> ValueField { get; private set; }
+
+        public bool AllowEmpty { get; set; }
+        
+        public ComboBoxCellView(IDataField<ComboBoxCellViewElement> valueField, IDataField<ComboBoxCellViewElement[]> optionsField)
+        {
+            ValueField = valueField;
+            options = optionsField;
+        }
+        
+        public event EventHandler<ComboBoxCellViewValueChangedEventArgs> ValueChanged;
+
+        bool IComboBoxCellViewFrontend.RaiseValueChanged (int row, string value)
+        {
+            if (ValueChanged != null) {
+                var args = new ComboBoxCellViewValueChangedEventArgs { Row = row, NewValue = value } ;
+                ValueChanged (this, args);
+                return args.Handled;
+            }
+            return false;
+        }
+        
+        private readonly IDataField<ComboBoxCellViewElement[]> options;
+    }
 }
