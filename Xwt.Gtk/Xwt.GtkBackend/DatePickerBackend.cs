@@ -170,6 +170,7 @@ namespace Xwt.GtkBackend
 				}
 			}
 
+            #pragma warning disable 108
 			DatePickerStyle style;
 			public DatePickerStyle Style {
 				get {
@@ -206,6 +207,7 @@ namespace Xwt.GtkBackend
 					WidthChars = format.Length;
 				}
 			}
+            #pragma warning restore 108
 
 			public GtkDatePickerEntry () : this (DatePickerStyle.DateTime)
 			{

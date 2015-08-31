@@ -78,7 +78,9 @@ namespace Xwt.GtkBackend
 					HeaderBox box = new HeaderBox ();
 					box.Show ();
 					box.BackgroundColor = UsingCustomBackgroundColor ? (Color?)BackgroundColor : null;
+                    #pragma warning disable 618
 					box.SetMargins ((int)f.BorderWidthTop, (int)f.BorderWidthBottom, (int)f.BorderWidthLeft, (int)f.BorderWidthRight);
+                    #pragma warning restore 618
 					box.SetPadding ((int)f.Padding.Top, (int)f.Padding.Bottom, (int)f.Padding.Left, (int)f.Padding.Right);
 					if (borderColor != null)
 						box.SetBorderColor (borderColor.Value);

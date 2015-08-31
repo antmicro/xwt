@@ -42,8 +42,10 @@ namespace Xwt.GtkBackend
 		IWidgetEventSink eventSink;
 		WidgetEvent enabledEvents;
 		bool destroyed;
+        #pragma warning disable 414
 		SizeConstraint currentWidthConstraint = SizeConstraint.Unconstrained;
 		SizeConstraint currentHeightConstraint = SizeConstraint.Unconstrained;
+        #pragma warning restore 414
 
 		bool minSizeSet;
 		

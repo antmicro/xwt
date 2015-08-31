@@ -70,7 +70,7 @@ namespace Xwt.GtkBackend
 		public event EventHandler<TreeNodeEventArgs> NodeInserted;
 		public event EventHandler<TreeNodeChildEventArgs> NodeDeleted;
 		public event EventHandler<TreeNodeEventArgs> NodeChanged;
-		public event EventHandler<TreeNodeOrderEventArgs> NodesReordered;
+        public event EventHandler<TreeNodeOrderEventArgs> NodesReordered { add {} remove {} }
 		
 		IterPos GetIterPos (TreePosition pos)
 		{

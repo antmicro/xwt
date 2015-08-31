@@ -305,7 +305,7 @@ namespace Xwt
 		public event EventHandler<ListRowEventArgs> RowInserted;
 		public event EventHandler<ListRowEventArgs> RowDeleted;
 		public event EventHandler<ListRowEventArgs> RowChanged;
-		public event EventHandler<ListRowOrderEventArgs> RowsReordered;
+        public event EventHandler<ListRowOrderEventArgs> RowsReordered { add {} remove {} }
 
 		public void InitializeBackend (object frontend, ApplicationContext context)
 		{

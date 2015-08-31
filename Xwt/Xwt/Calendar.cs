@@ -31,7 +31,9 @@ namespace Xwt
 	[BackendType (typeof(ICalendarBackend))]
 	public class Calendar : Widget
 	{
+        #pragma warning disable 169
 		EventHandler valueChanged, doubleClick;
+        #pragma warning restore 169
 
 		static Calendar ()
 		{

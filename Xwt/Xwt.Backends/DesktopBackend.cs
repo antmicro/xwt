@@ -93,7 +93,9 @@ namespace Xwt.Backends
 			});
 		}
 
+        #pragma warning disable 169
 		Xwt.Drawing.Image blankImage;
+        #pragma warning restore 169
 
 		public virtual void OpenFile (string filename)
 		{
