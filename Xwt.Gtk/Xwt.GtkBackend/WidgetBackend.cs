@@ -43,7 +43,6 @@ namespace Xwt.GtkBackend
 		IWidgetEventSink eventSink;
 		WidgetEvent enabledEvents;
 		bool destroyed;
-
 		bool minSizeSet;
 		
 		class DragDropData

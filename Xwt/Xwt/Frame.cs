@@ -59,7 +59,9 @@ namespace Xwt
 		public Frame (FrameType frameType)
 		{
 			VerifyConstructorCall (this);
+            #pragma warning disable 618
 			Type = frameType;
+            #pragma warning restore 618
 		}
 		
 		public Frame (Widget content)

@@ -247,7 +247,19 @@ namespace Xwt
 		public event EventHandler<TreeNodeEventArgs> NodeInserted;
 		public event EventHandler<TreeNodeChildEventArgs> NodeDeleted;
 		public event EventHandler<TreeNodeEventArgs> NodeChanged;
-		public event EventHandler<TreeNodeOrderEventArgs> NodesReordered;
+        private EventHandler<TreeNodeOrderEventArgs> nodesReordered;
+        public event EventHandler<TreeNodeOrderEventArgs> NodesReordered
+        {
+        	add
+        	{
+        		nodesReordered += value;
+        	}
+        	remove
+        	{
+        		nodesReordered -= value;
+        	}
+        }
+
 		public event EventHandler Cleared;
 
 		public void InitializeBackend (object frontend, ApplicationContext context)
@@ -465,7 +477,7 @@ namespace Xwt
 
 		protected virtual void OnNodesReordered(ListRowOrderEventArgs e)
 		{
-			if (NodesReordered != null) System.Diagnostics.Debug.WriteLine($"No support for {nameof(NodesReordered)} events from {nameof(DefaultTreeStoreBackend)}, sorry.");
+			if (nodesReordered != null) System.Diagnostics.Debug.WriteLine($"No support for {nameof(nodesReordered)} events from {nameof(DefaultTreeStoreBackend)}, sorry.");
 		}
 	}
 }
