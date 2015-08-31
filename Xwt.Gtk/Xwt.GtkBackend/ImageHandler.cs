@@ -408,7 +408,8 @@ namespace Xwt.GtkBackend
 
             /*
 			#pragma warning disable 618
-			using (var pattern = ctx.Source as Cairo.SurfacePattern) {
+			using (var p = ctx.Source) {
+				var pattern = p as Cairo.SurfacePattern;
 				if (pattern != null) {
 					if (idesc.Size.Width > img.Width || idesc.Size.Height > img.Height) {
 						// Fixes blur issue when rendering on an image surface
