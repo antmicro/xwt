@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Xwt.Drawing;
+using System.Runtime.InteropServices;
 
 namespace Xwt.GtkBackend
 {
@@ -115,6 +116,11 @@ namespace Xwt.GtkBackend
 			get {
 				return eventBox ?? (Gtk.Widget) Widget;
 			}
+		}
+
+		public string Name {
+			get { return Widget.Name; }
+			set { Widget.Name = value; }
 		}
 		
 		public virtual bool Visible {
@@ -258,7 +264,7 @@ namespace Xwt.GtkBackend
 		
 		protected virtual void Dispose (bool disposing)
 		{
-			if (Widget != null && disposing && Widget.Parent == null && !destroyed) {
+			if (Widget != null && disposing && !destroyed) {
 				MarkDestroyed (Frontend);
 				Widget.Destroy ();
 			}
@@ -268,7 +274,16 @@ namespace Xwt.GtkBackend
 
 		void MarkDestroyed (Widget w)
 		{
-			var bk = (WidgetBackend) Toolkit.GetBackend (w);
+			var wbk = Toolkit.GetBackend (w);
+			var bk = wbk as WidgetBackend;
+			if (bk == null) {
+				var ew = wbk as Xwt.Widget;
+				if (ew == null)
+					return;
+				bk = Toolkit.GetBackend (ew) as WidgetBackend;
+				if (bk == null)
+					return;
+			}
 			bk.destroyed = true;
 			foreach (var c in w.Surface.Children)
 				MarkDestroyed (c);
@@ -766,8 +781,8 @@ namespace Xwt.GtkBackend
 			var pointer_coords = EventsRootWidget.CheckPointerCoordinates (args.Event.Window, args.Event.X, args.Event.Y);
 			return new MouseScrolledEventArgs ((long) args.Event.Time, pointer_coords.X, pointer_coords.Y, direction);
 		}
-        
 
+		[GLib.ConnectBefore]
 		void HandleWidgetFocusOutEvent (object o, Gtk.FocusOutEventArgs args)
 		{
 			ApplicationContext.InvokeUserCode (delegate {
@@ -775,6 +790,7 @@ namespace Xwt.GtkBackend
 			});
 		}
 
+		[GLib.ConnectBefore]
 		void HandleWidgetFocusInEvent (object o, EventArgs args)
 		{
 			if (!CanGetFocus)
@@ -784,6 +800,7 @@ namespace Xwt.GtkBackend
 			});
 		}
 
+		[GLib.ConnectBefore]
 		void HandleLeaveNotifyEvent (object o, Gtk.LeaveNotifyEventArgs args)
 		{
 			if (args.Event.Detail == Gdk.NotifyType.Inferior)
@@ -793,6 +810,7 @@ namespace Xwt.GtkBackend
 			});
 		}
 
+		[GLib.ConnectBefore]
 		void HandleEnterNotifyEvent (object o, Gtk.EnterNotifyEventArgs args)
 		{
 			if (args.Event.Detail == Gdk.NotifyType.Inferior)
@@ -804,6 +822,7 @@ namespace Xwt.GtkBackend
 
 		protected virtual void OnEnterNotifyEvent (Gtk.EnterNotifyEventArgs args) {}
 
+		[GLib.ConnectBefore]
 		void HandleMotionNotifyEvent (object o, Gtk.MotionNotifyEventArgs args)
 		{
 			var a = GetMouseMovedEventArgs (args);
@@ -822,6 +841,7 @@ namespace Xwt.GtkBackend
 			return new MouseMovedEventArgs ((long) args.Event.Time, pointer_coords.X, pointer_coords.Y);
 		}
 
+		[GLib.ConnectBefore]
 		void HandleButtonReleaseEvent (object o, Gtk.ButtonReleaseEventArgs args)
 		{
 			var a = GetButtonReleaseEventArgs (args);

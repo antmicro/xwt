@@ -40,6 +40,9 @@ namespace Xwt.GtkBackend
 		public CustomCellRendererImage ()
 		{
 			renderer = new ImageRenderer ();
+			#if XWT_GTK3
+			renderer.Xalign = renderer.Yalign = 0.5f;
+			#endif
 			CellRenderer = renderer;
 		}
 
@@ -67,15 +70,28 @@ namespace Xwt.GtkBackend
 		{
 			if (image.IsNull)
 				return;
-			var pix = ((GtkImage)image.Backend);
+			var img = image;
+			if ((flags & CellRendererState.Selected) != 0) {
+				img = new ImageDescription {
+					Backend = img.Backend,
+					Size = img.Size,
+					Alpha = img.Alpha,
+					Styles = img.Styles.Add ("sel")
+				};
+			}
+			var pix = ((GtkImage)img.Backend);
+			int x_offset, y_offset, width, height;
+			this.GetSize (widget, ref cell_area, out x_offset, out y_offset, out width, out height);
+			pix.Draw (Context, cr, Util.GetScaleFactor (widget), cell_area.X + x_offset, cell_area.Y + y_offset, img);
 
+            //TODO: change it to Xalign/Yalign
       /* INTRODUCED BY Antmicro */
       // draws icon centered
-      var x = cell_area.X + (cell_area.Width - image.Size.Width) / 2;
-      var y = cell_area.Y + (cell_area.Height - image.Size.Height) / 2;
+      //var x = cell_area.X + (cell_area.Width - image.Size.Width) / 2;
+      //var y = cell_area.Y + (cell_area.Height - image.Size.Height) / 2;
       /* INTRODUCED BY Antmicro */
 
-      pix.Draw (Context, cr, Util.GetScaleFactor (widget), x, y, image);
+      //pix.Draw (Context, cr, Util.GetScaleFactor (widget), x, y, image);
 		}	
 
 		protected override void OnGetSize (Gtk.Widget widget, ref Gdk.Rectangle cell_area, out int x_offset, out int y_offset, out int width, out int height)
@@ -86,7 +102,11 @@ namespace Xwt.GtkBackend
 				width = (int) image.Size.Width;
 				height = (int) image.Size.Height;
 			}
-			x_offset = y_offset = 0;
+			if (!cell_area.IsEmpty && width > 0 && height > 0) {
+				x_offset = (int)Math.Max (0, Xalign * (cell_area.Width - width));
+				y_offset = (int)Math.Max (0, Yalign * (cell_area.Height - height));
+			} else
+				x_offset = y_offset = 0;
 		}
-	}
+    }
 }
