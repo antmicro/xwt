@@ -83,15 +83,6 @@ namespace Xwt.GtkBackend
 			int x_offset, y_offset, width, height;
 			this.GetSize (widget, ref cell_area, out x_offset, out y_offset, out width, out height);
 			pix.Draw (Context, cr, Util.GetScaleFactor (widget), cell_area.X + x_offset, cell_area.Y + y_offset, img);
-
-            //TODO: change it to Xalign/Yalign
-      /* INTRODUCED BY Antmicro */
-      // draws icon centered
-      //var x = cell_area.X + (cell_area.Width - image.Size.Width) / 2;
-      //var y = cell_area.Y + (cell_area.Height - image.Size.Height) / 2;
-      /* INTRODUCED BY Antmicro */
-
-      //pix.Draw (Context, cr, Util.GetScaleFactor (widget), x, y, image);
 		}	
 
 		protected override void OnGetSize (Gtk.Widget widget, ref Gdk.Rectangle cell_area, out int x_offset, out int y_offset, out int width, out int height)
