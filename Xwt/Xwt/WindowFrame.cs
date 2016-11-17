@@ -74,14 +74,7 @@ namespace Xwt
 		Image icon;
 		#pragma warning restore 0649
 		WindowFrame transientFor;
-
-        // INTRODUCED BY ANTMICRO
-        public int Id
-        {
-            get { return Backend.Id; }
-        }
-        // ---
-		
+        		
 		protected class WindowBackendHost: BackendHost<WindowFrame,IWindowFrameBackend>, IWindowFrameEventSink
 		{
 			protected override void OnBackendCreated ()
@@ -147,6 +140,16 @@ namespace Xwt
 			if (disposing && BackendHost.BackendCreated)
 				Backend.Dispose ();
 		}
+
+		// Introduced by Antmicro
+		public IntPtr NativeHandle
+		{
+			get
+			{
+				return Backend.NativeHandle;
+			}
+		}
+		// ---
 		
 		IWindowFrameBackend Backend {
 			get { return (IWindowFrameBackend) BackendHost.Backend; } 
