@@ -87,6 +87,11 @@ namespace Xwt.GtkBackend
 			this.SetHasWindow (false);
 		}
 		
+		public CustomContainer(IntPtr ptr) : this()
+		{
+
+		}
+
 		public void ReplaceChild (Gtk.Widget oldWidget, Gtk.Widget newWidget)
 		{
 			WidgetData r = children [oldWidget];
