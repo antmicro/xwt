@@ -44,6 +44,8 @@ namespace Xwt.WPFBackend
 		WindowFrame frontend;
 		bool resizable = true;
 
+		public int Id { get; set; }
+
 		public WindowFrameBackend ()
 		{
 		}

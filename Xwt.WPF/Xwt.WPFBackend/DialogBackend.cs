@@ -55,6 +55,8 @@ namespace Xwt.WPFBackend
 
 		private DelegatedCommand cmd;
 
+		public int Id { get; set; }
+
 		public DialogBackend()
 		{
 			cmd = new DelegatedCommand<DialogButton> (OnButtonClicked);
