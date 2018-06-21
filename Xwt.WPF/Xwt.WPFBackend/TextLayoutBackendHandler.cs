@@ -137,6 +137,7 @@ namespace Xwt.WPFBackend
 		Xwt.Drawing.TextTrimming? textTrimming;
 		Xwt.Alignment? textAlignment;
 		bool needsRebuild;
+		IList<BackgroundTextAttribute> backgroundTextAttributes = new List<BackgroundTextAttribute>();
 
 		readonly ApplicationContext ApplicationContext;
 
@@ -308,10 +309,24 @@ namespace Xwt.WPFBackend
 				col.Add(dec);
 				FormattedText.SetTextDecorations(col, xa.StartIndex, xa.Count);
 			}
+			else if (attribute is BackgroundTextAttribute)
+			{
+				// https://stackoverflow.com/questions/37381723/how-to-set-formattedtext-background-color-in-c-sharp
+				// No, you cannot.
+				// As is the case for anything you draw into a DrawingContext,
+				// the properties of the object control only the object itself,
+				// i.e. what's actually drawn for that object, not what's
+				// behind it or around it.
+				// Drawing a rectangle behind the text is the most obvious workaround,
+				// and would be entirely appropriate when using the object in a DrawingContext.
+				
+				backgroundTextAttributes.Add((BackgroundTextAttribute)attribute);
+			}
 		}
 
 		public void Rebuild ()
 		{
+			backgroundTextAttributes.Clear();
 			needsRebuild = false;
 			var dir = System.Windows.FlowDirection.LeftToRight;
 			formattedText = new System.Windows.Media.FormattedText(text, System.Globalization.CultureInfo.CurrentCulture, dir, defaultFont, 36, brush);
@@ -332,5 +347,12 @@ namespace Xwt.WPFBackend
 		}
 
 		public Font Font { get; private set; }
+		public ReadOnlyCollection<BackgroundTextAttribute> BackgroundTextAttributes
+		{
+			get
+			{
+				return new ReadOnlyCollection<BackgroundTextAttribute>(backgroundTextAttributes);
+			}
+		}
 	}
 }

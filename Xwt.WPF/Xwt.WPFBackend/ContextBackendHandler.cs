@@ -256,8 +256,26 @@ namespace Xwt.WPFBackend
 		{
 			var c = (DrawingContext) backend;
 			var t = (TextLayoutBackend)ApplicationContext.Toolkit.GetSafeBackend (layout);
+			
+			var formattedText = t.FormattedText;
+			if (formattedText.Text.Length > 0)
+			{
+				foreach (var attribute in t.BackgroundTextAttributes)
+				{
+					if (attribute.StartIndex < formattedText.Text.Length)
+					{
+						var brush = new SolidColorBrush(attribute.Color.ToWpfColor());
+						var geometry = formattedText.BuildHighlightGeometry(new SW.Point(0, 0), attribute.StartIndex, Math.Min(formattedText.Text.Length - attribute.StartIndex, attribute.Count));
+						if (geometry != null)
+						{
+							c.Context.DrawRectangle(brush, null, new Rect(geometry.Bounds.X, geometry.Bounds.Y, geometry.Bounds.Width, geometry.Bounds.Height));
+						}
+					}
+				}
+			}
+
 			t.SetDefaultForeground (c.ColorBrush);
-			c.Context.DrawText (t.FormattedText, new SW.Point (x, y));
+			c.Context.DrawText (formattedText, new SW.Point (x, y));
 		}
 
 		public override void DrawImage (object backend, ImageDescription img, double x, double y)
