@@ -201,6 +201,21 @@ namespace Xwt
 		X = 0x58,
 		Y = 0x59,
 		Z = 0x5a,
+
+		OpenSquareBracket = 91,
+		CloseSquareBracket = 93,
+		Underscore = 95,
+		Pipe = 124,
+		SingleQuote = 39,
+		Exclamation = 33,
+		Hash = 35,
+		Dollar = 36,
+		Percent = 37,
+		Ampersand = 38,
+		OpenCurlyBracket = 123,
+		CloseCurlyBracket = 125,
+		BackQuote = 96,
+		Tilde = 126,
 	}
 }
 
