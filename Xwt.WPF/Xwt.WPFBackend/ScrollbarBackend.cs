@@ -84,6 +84,20 @@ namespace Xwt.WPFBackend
 			Scrollbar.Minimum = lowerValue;
 			Scrollbar.Maximum = upperValue;
 			Scrollbar.ViewportSize = pageSize;
+
+			// Calculating the Track value, so the Thumb can adjust itself accordingly.
+			// https://msdn.microsoft.com/en-us/library/system.windows.controls.primitives.scrollbar(v=vs.110).aspx
+			if (Scrollbar.Track != null)
+			{
+				if (upperValue < Scrollbar.ActualHeight)
+				{
+					Scrollbar.Track.Maximum = 0;
+				}
+				else
+				{
+					Scrollbar.Track.Maximum = upperValue - pageSize;
+				}
+			}
 		}
 
 		#endregion
