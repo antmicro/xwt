@@ -33,6 +33,7 @@ using Font = Xwt.Drawing.Font;
 using System.Windows.Media;
 using System.Windows;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Xwt.WPFBackend
 {
@@ -297,7 +298,10 @@ namespace Xwt.WPFBackend
 			else if (attribute is ColorTextAttribute)
 			{
 				var xa = (ColorTextAttribute)attribute;
-				FormattedText.SetForegroundBrush(new SolidColorBrush(xa.Color.ToWpfColor()), xa.StartIndex, xa.Count);
+				if (xa.StartIndex < FormattedText.Text.Length)
+				{
+					FormattedText.SetForegroundBrush(new SolidColorBrush(xa.Color.ToWpfColor()), xa.StartIndex, Math.Min(xa.Count, FormattedText.Text.Length - xa.StartIndex));
+				}
 			}
 			else if (attribute is StrikethroughTextAttribute)
 			{
