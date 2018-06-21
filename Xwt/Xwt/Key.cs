@@ -219,7 +219,15 @@ namespace Xwt
 		LeftBrace = 0x7b,
 		Pipe = 0x7c,
 		RightBrace = 0x7d,
-		Tilde = 0x7e
+		Tilde = 0x7e,
+
+		OpenSquareBracket = LeftSquareBracket,
+		CloseSquareBracket = RightSquareBracket,
+		SingleQuote = Apostrophe,
+		Percent = Percentage,
+		OpenCurlyBracket = LeftBrace,
+		CloseCurlyBracket = RightBrace,
+		BackQuote = Backtick,
 	}
 }
 
