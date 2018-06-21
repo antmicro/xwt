@@ -120,6 +120,8 @@ namespace Xwt
 			MapEvent (WindowFrameEvent.Closed, typeof(WindowFrame), "OnClosed");
 		}
 
+		public int Id { get; set; }
+		
 		public WindowFrame ()
 		{
 			if (!(base.BackendHost is WindowBackendHost))

@@ -47,6 +47,8 @@ namespace Xwt.WPFBackend
 		DockPanel contentBox;
 		WindowStyle defaultWindowStyle = WindowStyle.SingleBorderWindow;
 
+		public int Id { get; set; }
+
 		public WindowBackend ()
 		{
 			base.Window = new WpfWindow ();
