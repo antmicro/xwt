@@ -49,6 +49,8 @@ namespace Xwt.WPFBackend
 
 		public int Id { get; set; }
 
+		public int Id { get; set; }
+
 		public WindowBackend ()
 		{
 			base.Window = new WpfWindow ();
