@@ -88,7 +88,13 @@ namespace Xwt.WPFBackend
 
 		public override Point GetCoordinateFromIndex (object backend, int index)
 		{
-			return Point.Zero;
+			var geometry = ((TextLayoutBackend)backend).FormattedText.BuildHighlightGeometry(new System.Windows.Point(0, 0), index, 1);
+			var point = new Point
+			{
+				X = geometry.Bounds.X,
+				Y = geometry.Bounds.Y
+			};
+			return point;
 		}
 
 		public override int GetIndexFromCoordinates (object backend, double x, double y)
