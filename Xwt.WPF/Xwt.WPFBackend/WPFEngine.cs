@@ -47,7 +47,6 @@ namespace Xwt.WPFBackend
 		DispatcherTimer dispatcherTimer;
 		BlockingCollection<Action> eventsToRun;
 
-
 		public static WPFEngine Instance { get; private set; }
 
 		public WPFEngine ()
@@ -251,6 +250,14 @@ namespace Xwt.WPFBackend
 				return new WpfImage(rtb);
 			} catch (Exception ex) {
 				throw new InvalidOperationException ("Rendering element not supported", ex);
+			}
+		}
+
+		private void TimerTick(object sender, EventArgs e)
+		{
+			while (eventsToRun.TryTake(out var action))
+			{
+				action();
 			}
 		}
 
