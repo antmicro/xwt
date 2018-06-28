@@ -30,6 +30,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 using System;
+using System.Collections.Concurrent;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -43,6 +44,9 @@ namespace Xwt.WPFBackend
 	public class WPFEngine : Xwt.Backends.ToolkitEngineBackend
 	{
 		System.Windows.Application application;
+		DispatcherTimer dispatcherTimer;
+		BlockingCollection<Action> eventsToRun;
+
 
 		public static WPFEngine Instance { get; private set; }
 
@@ -54,7 +58,7 @@ namespace Xwt.WPFBackend
 		public override void InitializeApplication ()
 		{
 			application = System.Windows.Application.Current;
-
+			eventsToRun = new BlockingCollection<Action> ();
 			if (application == null)
 				application = new System.Windows.Application ();
 
@@ -133,11 +137,16 @@ namespace Xwt.WPFBackend
 
 		public override void RunApplication ()
 		{
+			dispatcherTimer = new DispatcherTimer ();
+			dispatcherTimer.Tick += TimerTick;
+			dispatcherTimer.Interval = TimeSpan.FromMilliseconds (10);
+			dispatcherTimer.Start ();
 			application.Run ();
 		}
 
 		public override void ExitApplication ()
 		{
+			dispatcherTimer?.Stop ();
 			application.Shutdown();
 		}
 
@@ -145,13 +154,7 @@ namespace Xwt.WPFBackend
 		{
 			if (action == null)
 				throw new ArgumentNullException ("action");
-
-			try {
-				application.Dispatcher.BeginInvoke (action, new object [0]);
-			} catch (Exception ex) {
-
-				throw;
-			}
+			eventsToRun.Add (action);
 		}
 
 		public override object TimerInvoke (Func<bool> action, TimeSpan timeSpan)
@@ -168,6 +171,14 @@ namespace Xwt.WPFBackend
 				throw new ArgumentNullException ("id");
 
 			Timeout.CancelTimeout ((uint)id);
+		}
+
+		private void TimerTick(object sender, EventArgs e)
+		{
+			while (eventsToRun.TryTake(out var action))
+			{
+				action();
+			}
 		}
 
 		public override IWindowFrameBackend GetBackendForWindow (object nativeWindow)
@@ -262,4 +273,3 @@ namespace Xwt.WPFBackend
 		}
 	}
 }
-
