@@ -46,8 +46,6 @@ namespace Xwt.WPFBackend
 		FrameworkElement widget;
 		DockPanel contentBox;
 
-		public int Id { get; set; }
-
 		public WindowBackend ()
 		{
 			base.Window = new WpfWindow ();
