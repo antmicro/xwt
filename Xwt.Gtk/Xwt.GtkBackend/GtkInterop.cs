@@ -238,8 +238,17 @@ namespace Xwt.GtkBackend
 
 		public int IndexToByteIndex (int i)
 		{
+			if (indexToByteIndex.Length == 0)
+			{
+				return 0;
+			}
 			if (i >= indexToByteIndex.Length)
-				return i;
+			{
+				// if the index exceeds the byte index range, return the last byte index + 1
+				// telling pango to span the attribute to the end of the string
+				// this happens if the string contains multibyte characters
+				return indexToByteIndex[indexToByteIndex.Length - 1] + 1;
+			}
 			return indexToByteIndex[i];
 		}
 
