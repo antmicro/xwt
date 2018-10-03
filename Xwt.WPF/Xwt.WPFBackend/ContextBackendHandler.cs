@@ -275,7 +275,7 @@ namespace Xwt.WPFBackend
 			}
 
 			t.SetDefaultForeground (c.ColorBrush);
-			c.Context.DrawText (formattedText, new SW.Point (x, y));
+			c.Context.DrawText (t.FormattedText, new SW.Point (x, y));
 		}
 
 		public override void DrawImage (object backend, ImageDescription img, double x, double y)
