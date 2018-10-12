@@ -29,7 +29,7 @@ namespace Xwt.WPFBackend
                 {
 					Scrollbar.Scroll += Scrollbar_Scroll;
 					Scrollbar.ValueChanged += Scrollbar_Scroll;
-				}    
+				}
             }
         }
 
@@ -42,7 +42,7 @@ namespace Xwt.WPFBackend
                 {
 					Scrollbar.Scroll -= Scrollbar_Scroll;
 					Scrollbar.ValueChanged -= Scrollbar_Scroll;
-				}    
+				}
             }
         }
 
