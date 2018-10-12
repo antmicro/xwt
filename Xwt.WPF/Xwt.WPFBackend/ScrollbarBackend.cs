@@ -26,7 +26,10 @@ namespace Xwt.WPFBackend
             if (eventId is ScrollAdjustmentEvent)
             {
                 if (((ScrollAdjustmentEvent)eventId) == ScrollAdjustmentEvent.ValueChanged)
-                    Scrollbar.Scroll += Scrollbar_Scroll;
+                {
+					Scrollbar.Scroll += Scrollbar_Scroll;
+					Scrollbar.ValueChanged += Scrollbar_Scroll;
+				}    
             }
         }
 
@@ -36,11 +39,14 @@ namespace Xwt.WPFBackend
             if (eventId is ScrollAdjustmentEvent)
             {
                 if (((ScrollAdjustmentEvent)eventId) == ScrollAdjustmentEvent.ValueChanged)
-                    Scrollbar.Scroll -= Scrollbar_Scroll;
+                {
+					Scrollbar.Scroll -= Scrollbar_Scroll;
+					Scrollbar.ValueChanged -= Scrollbar_Scroll;
+				}    
             }
         }
 
-        void Scrollbar_Scroll(object sender, SWC.Primitives.ScrollEventArgs e)
+        void Scrollbar_Scroll(object sender, EventArgs e)
         {
             this.Context.InvokeUserCode(delegate
             {
