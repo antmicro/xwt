@@ -268,7 +268,7 @@ namespace Xwt.WPFBackend
 						var geometry = formattedText.BuildHighlightGeometry(new SW.Point(0, 0), attribute.StartIndex, Math.Min(formattedText.Text.Length - attribute.StartIndex, attribute.Count));
 						if (geometry != null)
 						{
-							c.Context.DrawRectangle(brush, null, new Rect(geometry.Bounds.X, geometry.Bounds.Y, geometry.Bounds.Width, geometry.Bounds.Height));
+							c.Context.DrawGeometry(brush, null, geometry);
 						}
 					}
 				}
