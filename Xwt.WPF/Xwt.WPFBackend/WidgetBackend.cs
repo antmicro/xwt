@@ -41,6 +41,7 @@ using SW = System.Windows; // When we need to resolve ambigituies.
 using Xwt.Backends;
 
 using Color = Xwt.Drawing.Color;
+using System.Windows.Interop;
 
 namespace Xwt.WPFBackend
 {
@@ -251,10 +252,21 @@ namespace Xwt.WPFBackend
 
 		public Point ConvertToScreenCoordinates (Point widgetCoordinates)
 		{
-			var p = Widget.PointToScreen (new System.Windows.Point (
-				widgetCoordinates.X, widgetCoordinates.Y));
-
-			return new Point (p.X, p.Y);
+			Matrix matrix;
+			var source = PresentationSource.FromVisual(Widget);
+			if (source != null)
+			{
+				matrix = source.CompositionTarget.TransformToDevice;
+			}
+			else
+			{
+				using (var src = new HwndSource(new HwndSourceParameters()))
+				{
+					matrix = src.CompositionTarget.TransformToDevice;
+				}
+			}
+			var coordinates = new Point((int)(matrix.M11 * widgetCoordinates.X), (int)(matrix.M22 * widgetCoordinates.Y));
+			return coordinates;
 		}
 
 		void GetWidgetDesiredSize (double availableWidth, double availableHeight, out SW.Size size)
