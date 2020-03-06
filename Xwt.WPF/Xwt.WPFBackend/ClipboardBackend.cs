@@ -46,17 +46,21 @@ namespace Xwt.WPFBackend
 				throw new ArgumentNullException ("type");
 			if (dataSource == null)
 				throw new ArgumentNullException ("dataSource");
-			if (type == TransferDataType.Html) {
-				WindowsClipboard.SetData (type.ToWpfDataFormat (), GenerateCFHtml (dataSource ().ToString ()));
-			} else if (type == TransferDataType.Image) {
-				var img = dataSource() as Xwt.Drawing.Image;
-				if (img != null)
-				{
-					var src = img.ToBitmap().GetBackend() as WpfImage;
-					WindowsClipboard.SetData (type.ToWpfDataFormat (), src.MainFrame);
+			try {
+				if (type == TransferDataType.Html) {
+					WindowsClipboard.SetData (type.ToWpfDataFormat (), GenerateCFHtml (dataSource ().ToString ()));
+				} else if (type == TransferDataType.Image) {
+					var img = dataSource() as Xwt.Drawing.Image;
+					if (img != null)
+					{
+						var src = img.ToBitmap().GetBackend() as WpfImage;
+						WindowsClipboard.SetData (type.ToWpfDataFormat (), src.MainFrame);
+					}
+				} else {
+					WindowsClipboard.SetData (type.ToWpfDataFormat (), dataSource ());
 				}
-			} else {
-				WindowsClipboard.SetData (type.ToWpfDataFormat (), dataSource ());
+			} catch(Exception ex) when (ex.Message.Contains("CLIPBRD_E_CANT_OPEN")) {
+				//apparently windows-specific race condition error, but since the data is copied to clipboard successfully, this seems to be enough
 			}
 		}
 
