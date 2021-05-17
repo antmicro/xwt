@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Collections.Concurrent;
 
 using Xwt.Backends;
 using Xwt.CairoBackend;
@@ -37,11 +38,14 @@ namespace Xwt.GtkBackend
 	public class GtkEngine: ToolkitEngineBackend
 	{
 		GtkPlatformBackend platformBackend;
+		BlockingCollection<Action> eventsToRun;
 
 		internal GtkPlatformBackend PlatformBackend { get { return platformBackend; } }
 
 		public override void InitializeApplication ()
 		{
+			eventsToRun = new BlockingCollection<Action> ();
+
 			Gtk.Application.Init ();
 		}
 
@@ -163,6 +167,9 @@ namespace Xwt.GtkBackend
 
 		public override void RunApplication ()
 		{
+			// this is for better handling of many small
+			// GUI events
+			TimerInvoke (RunEventsQueue, TimeSpan.FromMilliseconds(10));
 			Gtk.Application.Run ();
 		}
 		
@@ -230,11 +237,20 @@ namespace Xwt.GtkBackend
 			if (action == null)
 				throw new ArgumentNullException ("action");
 
-			// Switch to no Invoke(Action) once a gtk# release is done.
-			Gtk.Application.Invoke ((o, args) => {
-				action ();
-			});
+			eventsToRun.Add (action);
 		}
+
+		private bool RunEventsQueue ()
+		{
+			while (eventsToRun.TryTake(out var action))
+			{
+				action ();
+			}
+
+			// returning `true` schedules another call on the next timer event
+			return true;
+		}
+
 
 		public override object TimerInvoke (Func<bool> action, TimeSpan timeSpan)
 		{
