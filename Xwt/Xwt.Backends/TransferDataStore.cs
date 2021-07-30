@@ -50,7 +50,16 @@ namespace Xwt.Backends
 		{
 			data [TransferDataType.Text] = text;
 		}
-		
+
+		/// <summary>
+		/// Adds a text to transfer to the primary selection.
+		/// </summary>
+		/// <param name="text">A Text.</param>
+		public void AddPrimaryText (string text)
+		{
+			data [TransferDataType.PrimaryText] = text;
+		}
+
 		/// <summary>
 		/// Adds an image to transfer.
 		/// </summary>

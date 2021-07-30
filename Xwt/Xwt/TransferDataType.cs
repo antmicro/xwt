@@ -51,7 +51,12 @@ namespace Xwt
 		/// The text data type
 		/// </summary>
 		public static readonly TransferDataType Text = FromId ("text");
-		
+
+		/// <summary>
+		/// The text data type targeting the primary selection
+		/// </summary>
+		public static readonly TransferDataType PrimaryText = FromId ("primaryText");
+
 		/// <summary>
 		/// The RTF data type
 		/// </summary>

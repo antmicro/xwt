@@ -56,7 +56,12 @@ namespace Xwt
 		{
 			return ContainsData (TransferDataType.Text);
 		}
-		
+
+		public static bool ContainsPrimaryText ()
+		{
+			return ContainsData (TransferDataType.PrimaryText);
+		}
+
 		public static bool ContainsImage ()
 		{
 			return ContainsData (TransferDataType.Image);
@@ -81,7 +86,7 @@ namespace Xwt
 		{
 			return (string) GetData (TransferDataType.Text);
 		}
-		
+
 		public static IAsyncResult BeginGetText (AsyncCallback callback, object state)
 		{
 			return Backend.BeginGetData (TransferDataType.Text, callback, state);
@@ -91,7 +96,22 @@ namespace Xwt
 		{
 			return (string) Backend.EndGetData (ares);
 		}
-		
+
+		public static string GetPrimaryText ()
+		{
+			return (string) GetData (TransferDataType.PrimaryText);
+		}
+
+		public static IAsyncResult BeginGetPrimaryText (AsyncCallback callback, object state)
+		{
+			return Backend.BeginGetData (TransferDataType.PrimaryText, callback, state);
+		}
+
+		public static string EndGetPrimaryText (IAsyncResult ares)
+		{
+			return (string) Backend.EndGetData (ares);
+		}
+
 		public static object GetData (TransferDataType type)
 		{
 			return Backend.GetData (type);
@@ -133,7 +153,19 @@ namespace Xwt
 		{
 			Backend.SetData (TransferDataType.Text, textSource);
 		}
-		
+
+		public static void SetPrimaryText (string text)
+		{
+			Backend.SetData (TransferDataType.PrimaryText, delegate {
+				return text;
+			});
+		}
+
+		public static void SetPrimaryText (Func<string> textSource)
+		{
+			Backend.SetData (TransferDataType.PrimaryText, textSource);
+		}
+
 		public static void SetImage (Image image)
 		{
 			Backend.SetData (TransferDataType.Image, delegate {

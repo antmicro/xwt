@@ -88,6 +88,8 @@ namespace Xwt.GtkBackend
 
 			if (type == TransferDataType.Text)
 				target.AddText (data.Text);
+			else if (type == TransferDataType.PrimaryText)
+				target.AddPrimaryText (data.Text);
 			else if (data.TargetsIncludeImage (false))
 				target.AddImage (context.Toolkit.WrapImage (data.Pixbuf));
 			else if (type == TransferDataType.Uri) {
@@ -139,7 +141,7 @@ namespace Xwt.GtkBackend
 					list.AddUriTargets (id);
 					entries = (Gtk.TargetEntry[])list;
 				}
-				else if (type == TransferDataType.Text) {
+				else if (type == TransferDataType.Text || type == TransferDataType.PrimaryText) {
 					Gtk.TargetList list = new Gtk.TargetList ();
 					list.AddTextTargets (id);
 					//HACK: work around gtk_selection_data_set_text causing crashes on Mac w/ QuickSilver, Clipbard History etc.
