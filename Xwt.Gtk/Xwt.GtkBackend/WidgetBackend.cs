@@ -859,6 +859,9 @@ namespace Xwt.GtkBackend
 			var a = GetButtonPressEventArgs (args);
 			if (a == null)
 				return;
+
+			ButtonPressedInternal(a);
+
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnButtonPressed (a);
 			});
@@ -881,14 +884,6 @@ namespace Xwt.GtkBackend
 				a.MultiplePress = 3;
 			else
 				a.MultiplePress = 1;
-
-            ButtonPressedInternal(a);
-
-			ApplicationContext.InvokeUserCode (delegate {
-				EventSink.OnButtonPressed (a);
-			});
-			if (a.Handled)
-				args.RetVal = true;
 			return a;
 		}
 
