@@ -34,13 +34,13 @@ namespace Xwt.GtkBackend
 {
 	public class GtkClipboardBackend: ClipboardBackend
 	{
-//		Gtk.Clipboard primaryClipboard;
+		Gtk.Clipboard primaryClipboard;
 		Gtk.Clipboard clipboard;
 		
 		public GtkClipboardBackend ()
 		{
 			clipboard = Gtk.Clipboard.Get (Gdk.Atom.Intern ("CLIPBOARD", false));
-//			primaryClipboard = Gtk.Clipboard.Get (Gdk.Atom.Intern ("PRIMARY", false));
+			primaryClipboard = Gtk.Clipboard.Get (Gdk.Atom.Intern ("PRIMARY", false));
 		}
 
 		#region IClipboardBackend implementation
@@ -51,7 +51,15 @@ namespace Xwt.GtkBackend
 
 		public override void SetData (TransferDataType type, Func<object> dataSource)
 		{
-			clipboard.SetWithData ((Gtk.TargetEntry[])Util.BuildTargetTable (new TransferDataType[] { type }), 
+			var targetClipboard = clipboard;
+			if (type == TransferDataType.PrimaryText) {
+				targetClipboard = primaryClipboard;
+				// We set the type to Text because otherwise copying to PRIMARY stops working
+				// after the first time we copy to the CLIPBOARD.
+				type = TransferDataType.Text;
+			}
+
+			targetClipboard.SetWithData ((Gtk.TargetEntry[])Util.BuildTargetTable (new TransferDataType[] { type }),
 			  delegate (Gtk.Clipboard cb, Gtk.SelectionData data, uint id) {
 				TransferDataType ttype = Util.AtomToType (data.Target.Name);
 				if (ttype == type)
@@ -65,6 +73,8 @@ namespace Xwt.GtkBackend
 		{
 			if (type == TransferDataType.Text)
 				return clipboard.WaitIsTextAvailable ();
+			if (type == TransferDataType.PrimaryText)
+				return primaryClipboard.WaitIsTextAvailable ();
 			if (type == TransferDataType.Image)
 				return clipboard.WaitIsImageAvailable ();
 			
@@ -85,6 +95,8 @@ namespace Xwt.GtkBackend
 		{
 			if (type == TransferDataType.Text)
 				return clipboard.WaitForText ();
+			if (type == TransferDataType.PrimaryText)
+				return primaryClipboard.WaitForText ();
 			if (type == TransferDataType.Image)
 				return ApplicationContext.Toolkit.WrapImage (new GtkImage (clipboard.WaitForImage()));
 			
@@ -100,7 +112,8 @@ namespace Xwt.GtkBackend
 		public override IAsyncResult BeginGetData (TransferDataType type, AsyncCallback callback, object state)
 		{
 			var atts = GetAtomsForType (type).ToArray ();
-			return new DataRequest (ApplicationContext, clipboard, callback, state, type, atts);
+			var targetClipboard = type == TransferDataType.PrimaryText ? primaryClipboard : clipboard;
+			return new DataRequest (ApplicationContext, targetClipboard, callback, state, type, atts);
 		}
 
 		public override object EndGetData (IAsyncResult ares)
