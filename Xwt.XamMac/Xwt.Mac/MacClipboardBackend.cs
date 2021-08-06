@@ -58,6 +58,9 @@ namespace Xwt.Mac
 
 		public override void SetData (TransferDataType type, Func<object> dataSource)
 		{
+			if (type == TransferDataType.PrimaryText)
+				return; // Not supported by the Mac backend
+
 			var pboard = NSPasteboard.GeneralPasteboard;
 			pboard.ClearContents ();
 			owner.DataSource = dataSource;
@@ -66,11 +69,17 @@ namespace Xwt.Mac
 
 		public override bool IsTypeAvailable (TransferDataType type)
 		{
+			if (type == TransferDataType.PrimaryText)
+				return false; // Not supported by the Mac backend
+
 			return NSPasteboard.GeneralPasteboard.Types.Contains (type.ToUTI ());
 		}
 
 		public override object GetData (TransferDataType type)
 		{
+			if (type == TransferDataType.PrimaryText)
+				return null; // Not supported by the Mac backend
+
 			if (type == TransferDataType.Uri)
 				return (Uri)NSUrl.FromPasteboard (NSPasteboard.GeneralPasteboard);
 

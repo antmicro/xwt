@@ -46,6 +46,10 @@ namespace Xwt.WPFBackend
 				throw new ArgumentNullException ("type");
 			if (dataSource == null)
 				throw new ArgumentNullException ("dataSource");
+
+			if (type == TransferDataType.PrimaryText)
+				return; // Not supported by the WPF backend
+
 			try {
 				if (type == TransferDataType.Html) {
 					WindowsClipboard.SetData (type.ToWpfDataFormat (), GenerateCFHtml (dataSource ().ToString ()));
@@ -88,6 +92,9 @@ namespace Xwt.WPFBackend
 		{
 			if (type == null)
 				throw new ArgumentNullException ("type");
+
+			if (type == TransferDataType.PrimaryText)
+				return false; // Not supported by the WPF backend
 
 			return WindowsClipboard.ContainsData (type.ToWpfDataFormat ());
 		}
