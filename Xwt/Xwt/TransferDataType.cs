@@ -53,7 +53,7 @@ namespace Xwt
 		public static readonly TransferDataType Text = FromId ("text");
 
 		/// <summary>
-		/// The text data type targeting the primary selection
+		/// The text data type targeting the primary selection. Only supported by the Gtk backend.
 		/// </summary>
 		public static readonly TransferDataType PrimaryText = FromId ("primaryText");
 
