@@ -1,57 +1,53 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFrameworks>net472</TargetFrameworks>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="$(NET) == 'true'">
+    <BaseIntermediateOutputPath>obj\$(MSBuildProjectName)</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition="$(NET) == 'true'"/>
+  <PropertyGroup Condition="$(NET) == 'true'">
+    <TargetFrameworks Condition="$(OS) != 'Windows_NT'">net5.0</TargetFrameworks>
+    <TargetFrameworks Condition="$(OS) == 'Windows_NT'">net5.0-windows10.0.17763.0</TargetFrameworks>
+    <EnableDefaultItems>false</EnableDefaultItems>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\xwt.snk</AssemblyOriginatorKeyFile>
+	  <Deterministic>false</Deterministic>
+    <UseWindowsForms Condition="$(OS) == 'Windows_NT'">true</UseWindowsForms>
+    <UseWPF Condition="$(OS) == 'Windows_NT'">true</UseWPF>
+    <ReferenceWpfAeroTheme>true</ReferenceWpfAeroTheme>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C93D746E-1586-4D4F-B411-BF5A966E6A08}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <RootNamespace>Xwt.WPF</RootNamespace>
     <AssemblyName>Xwt.WPF</AssemblyName>
-    <DefineConstants>DEBUG;NETFRAMEWORK</DefineConstants>
+    <TargetFrameworkVersion Condition="$(NET) != 'true'">v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>True</DebugSymbols>
     <DebugType>full</DebugType>
-    <LangVersion>6</LangVersion>
+    <Optimize>False</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>False</ConsolePause>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
-    <LangVersion>6</LangVersion>
+    <Optimize>False</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>False</ConsolePause>
   </PropertyGroup>
   <PropertyGroup>
-    <PackageId>Xwt.WPF</PackageId>
-    <PackageVersion>1.0.0</PackageVersion>
-    <Authors>Lluis Sanchez</Authors>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/mono/xwt/</PackageProjectUrl>
-    <PackageTags>xwt cross platform gui ui toolkit framework desktop wpf</PackageTags>
-    <Description>Xwt is a cross-platform UI toolkit for creating desktop applications with .NET and Mono.
-        
-This package contains the WPF toolkit backend for Xwt based applications targeting WPF (Windows Presentation Foundation).</Description>
+    <SignAssembly>True</SignAssembly>
   </PropertyGroup>
-  <ItemGroup>
-    <Resource Include="Xwt.WPFBackend\TreeView.xaml">
-      <SubType>Designer</SubType>
-    </Resource>
-    <Resource Include="Xwt.WPFBackend\ScrollView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Resource>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="icons\add-16.png" />
-    <EmbeddedResource Include="icons\add-16~dark.png" />
-    <EmbeddedResource Include="icons\add-16~disabled.png" />
-    <EmbeddedResource Include="icons\add-16~dark~disabled.png" />
-    <EmbeddedResource Include="icons\remove-16.png" />
-    <EmbeddedResource Include="icons\remove-16~dark.png" />
-    <EmbeddedResource Include="icons\remove-16~disabled.png" />
-    <EmbeddedResource Include="icons\remove-16~dark~disabled.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Xwt\Xwt.csproj" />
-  </ItemGroup>
-  <ItemGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>..\xwt.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup Condition="$(NET) != 'true'">
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="PresentationFramework.Aero" />
@@ -65,11 +61,246 @@ This package contains the WPF toolkit backend for Xwt based applications targeti
     <Reference Include="UIAutomationTypes" />
     <Reference Include="WindowsBase" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="Xwt.WPFBackend.Utilities\MultiColumnTreeViewItem.cs" />
+  <ItemGroup Condition="$(NET) == 'true'">
+    <PackageReference Include="Microsoft.Windows.Compatibility">
+      <Version>5.0.2</Version>
+    </PackageReference>
+    <PackageReference Include="System.Drawing.Common">
+      <Version>5.0.2</Version>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>
-    <None Include="..\README.markdown" Pack="true" PackagePath=""/>
+    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="Xwt.WPFBackend.CellViews\CanvasCellViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend.CellViews\CanvasCellViewPanel.cs" />
+    <Compile Include="Xwt.WPFBackend.CellViews\CellViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend.Interop\NativeStockIcon.cs" />
+    <Compile Include="Xwt.WPFBackend.Utilities\CellUtil.cs" />
+    <Compile Include="Xwt.WPFBackend.Utilities\ImageToImageSourceConverter.cs" />
+    <Compile Include="Xwt.WPFBackend.Utilities\TypeToStringConverter.cs" />
+    <Compile Include="Xwt.WPFBackend\AlertDialogBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\Backend.cs" />
+    <Compile Include="Xwt.WPFBackend\BooleanToValueConverter.cs" />
+    <Compile Include="Xwt.WPFBackend\ButtonBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\CheckBoxBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\CheckboxMenuItemBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ClipboardBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ComboBoxBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ComboBoxEntryBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ComboBoxTextEntryBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\DatePickerBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\EmbedNativeWidgetBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\PasswordEntryBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\PlaceholderTextAdorner.cs" />
+    <Compile Include="Xwt.WPFBackend\ScrollbarBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\SliderBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\SpinButtonBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\RadioButtonBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ImagePatternBackendHandler.cs" />
+    <Compile Include="Xwt.WPFBackend\GradientBackendHandler.cs" />
+    <Compile Include="Xwt.WPFBackend\SelectColorDialogBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\TextLayoutBackendHandler.cs" />
+    <Compile Include="Xwt.WPFBackend\ImageBuilderBackendHandler.cs" />
+    <Compile Include="Xwt.WPFBackend\DrawingContext.cs" />
+    <Compile Include="Xwt.WPFBackend\ContextBackendHandler.cs" />
+    <Compile Include="Xwt.WPFBackend\ExRichTextBox.cs" />
+    <Compile Include="Xwt.WPFBackend\SaveFileDialogBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\LinkLabelBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\PopoverBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ProgressBarBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\CustomWidgetBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\DelegatedCommand.cs" />
+    <Compile Include="Xwt.WPFBackend\DialogBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\DropDownButton.cs" />
+    <Compile Include="Xwt.WPFBackend\ExComboBox.cs" />
+    <Compile Include="Xwt.WPFBackend\ExGrid.cs" />
+    <Compile Include="Xwt.WPFBackend\ExListBox.cs" />
+    <Compile Include="Xwt.WPFBackend\ExListBoxItem.cs" />
+    <Compile Include="Xwt.WPFBackend\ExListView.cs" />
+    <Compile Include="Xwt.WPFBackend\ExListViewItem.cs" />
+    <Compile Include="Xwt.WPFBackend\ExpanderBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ExScrollViewer.cs" />
+    <Compile Include="Xwt.WPFBackend\ExTextBox.cs" />
+    <Compile Include="Xwt.WPFBackend\ExTreeView.cs" />
+    <Compile Include="Xwt.WPFBackend\ExTreeViewItem.cs" />
+    <Compile Include="Xwt.WPFBackend\FileDialogBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\FrameBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ImageHandler.cs" />
+    <Compile Include="Xwt.WPFBackend.Interop\NativeMethods.cs" />
+    <Compile Include="Xwt.WPFBackend\ImageViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\LabelBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\BoxBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\DataConverter.cs" />
+    <Compile Include="Xwt.WPFBackend\FontBackendHandler.cs" />
+    <Compile Include="Xwt.WPFBackend\KeyboardUtil.cs" />
+    <Compile Include="Xwt.WPFBackend\LevelToIndentConverter.cs" />
+    <Compile Include="Xwt.WPFBackend\ListBoxBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ListDataSource.cs" />
+    <Compile Include="Xwt.WPFBackend\ListSourceNotifyWrapper.cs" />
+    <Compile Include="Xwt.WPFBackend\ListViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\MenuBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\MenuButtonBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\MenuItemBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\OpenFileDialogBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\PanedBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\RadioButtonMenuItemBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ResPool.cs" />
+    <Compile Include="Xwt.WPFBackend\ScrollViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\SelectFolderDialogBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\SeparatorBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\SeparatorMenuItemBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\SpinnerBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\TextEntryBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\Timeout.cs" />
+    <Compile Include="Xwt.WPFBackend\ToggleButtonBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\TreeStoreBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\TreeStoreNode.cs" />
+    <Compile Include="Xwt.WPFBackend\TreeViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ImageAdorner.cs" />
+    <Compile Include="Xwt.WPFBackend\TreeViewDropAdorner.cs" />
+    <Compile Include="Xwt.WPFBackend\Util.cs" />
+    <Compile Include="Xwt.WPFBackend\ValuesContainer.cs" />
+    <Compile Include="Xwt.WPFBackend\CanvasBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\WidgetBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\WindowBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\WindowFrameBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\WPFEngine.cs" />
+    <Compile Include="Xwt.WPFBackend\NotebookBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ScrollAdjustmentBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\CustomScrollViewPort.cs" />
+    <Compile Include="Xwt.WPFBackend\RichTextViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\WpfDesktopBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\WindowsSpinButton.xaml.cs" />
+    <Compile Include="Xwt.WPFBackend\WpfKeyboardHandler.cs" />
+    <Compile Include="Xwt.WPFBackend\WebViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\ScrollControlBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\CalendarBackend.cs" />
+    <Compile Include="Xwt.WPFBackend.Interop\IDocHostUIHandler.cs" />
+    <Compile Include="Xwt.WPFBackend\AccessibleBackend.cs" />
+    <Compile Include="Xwt.WPFBackend\AccessibleBackend.AccessibilityHelper.cs" />
+    <Compile Include="Xwt.WPFBackend.CellViews\CheckBoxCellViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend.CellViews\RadioButtonCellViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend.CellViews\TextCellViewBackend.cs" />
+    <Compile Include="Xwt.WPFBackend.Utilities\MarkupToPlainTextConverter.cs" />
+    <!-- <Compile Include="Xwt.WPFBackend.Utilities\MultiColumnTreeViewItem.cs" /> -->
   </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" Condition="$(NET) != 'true'"/>
+  <ItemGroup>
+    <ProjectReference Include="..\Xwt\Xwt.csproj">
+      <Project>{92494904-35FA-4DC9-BDE9-3A3E87AC49D3}</Project>
+      <Name>Xwt</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\xwt.snk">
+      <Link>xwt.snk</Link>
+    </None>
+  </ItemGroup>
+ <ItemGroup>
+    <Resource Include="Xwt.WPFBackend\TreeView.xaml">
+      <SubType>Designer</SubType>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="icons\add-16.png" />
+    <EmbeddedResource Include="icons\add-16~dark.png" />
+    <EmbeddedResource Include="icons\add-16~disabled.png" />
+    <EmbeddedResource Include="icons\add-16~dark~disabled.png" />
+    <EmbeddedResource Include="icons\remove-16.png" />
+    <EmbeddedResource Include="icons\remove-16~dark.png" />
+    <EmbeddedResource Include="icons\remove-16~disabled.png" />
+    <EmbeddedResource Include="icons\remove-16~dark~disabled.png" />
+  </ItemGroup>
+  <!-- 
+    Usage:
+      To reference a specific WPF theme assembly, set one or more of these properties to true.
+      If no property is set to true, then all theme assemblies are referenced (default). 
+      
+      Setting one property to 'true' implies that other properties are 'false' by default (unless they are 
+      explicitly set to true). 
+      
+       <PropertyGroup>
+          <ReferenceWpfAeroTheme>true</ReferenceWpfAeroTheme>
+          <ReferenceWpfAero2Theme>true</ReferenceWpfAero2Theme>
+          <ReferenceWpfAeroLiteTheme>true</ReferenceWpfAeroLiteTheme>
+          <ReferenceWpfClassicTheme>true</ReferenceWpfClassicTheme>
+          <ReferenceWpfLunaTheme>true</ReferenceWpfLunaTheme>
+          <ReferenceWpfRoyaleTheme>true</ReferenceWpfRoyaleTheme>
+       </PropertyGroup>
+     
+     Advanced Usage:
+      To reference more than one theme assembly at the same time, use an 'alias' 
+        See 'Aliases' in the documentation for [MSBuild Reference element](https://docs.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=vs-2019)
+        and the [C# compiler commandline documentation for -reference](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-options/reference-compiler-option)
+      
+      This only works in C#. 
+      
+      <PropertyGroup>
+        <WpfAeroThemeAliases>namespace</WpfAeroThemeAliases>
+        <WpfAero2ThemeAliases>namespace</WpfAero2ThemeAliases>
+        <WpfAeroLiteThemeAliases>nameaspace</WpfAeroLiteThemeAliases>
+        <WpfClassicThemeAliases>namespace</WpfClassicThemeAliases>
+        <WpfLunaThemeAliases>namespace</WpfLunaThemeAliases>
+        <WpfRoyaleThemeAliases>namespace</WpfRoyaleThemeAliases>
+      </PropertyGroup>
+  -->
+  <Target Name="SelectWpfThemeAssembly" 
+          AfterTargets="ResolveAssemblyReferences" 
+          Condition="'$(ReferenceWpfAeroTheme)' == 'true'     Or
+                     '$(ReferenceWpfAero2Theme)' == 'true'    Or
+                     '$(ReferenceWpfAeroLiteTheme)' == 'true' Or
+                     '$(ReferenceWpfClassicTheme)' == 'true'  Or 
+                     '$(ReferenceWpfLunaTheme)' == 'true'     Or
+                     '$(ReferenceWpfRoyaleTheme)' == 'true'">
+    <ItemGroup>
+      <_WpfThemeAssemblies Include="@(ReferencePath)"
+                        Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
+                                   '%(ReferencePath.FileName)'=='PresentationFramework.Aero'">
+        <Aliases Condition="'$(WpfAeroThemeAliases)'!=''">$(WpfAeroThemeAliases)</Aliases>
+      </_WpfThemeAssemblies>
+
+      <_WpfThemeAssemblies Include="@(ReferencePath)"
+                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
+                                   '%(ReferencePath.FileName)'=='PresentationFramework.Aero2'">
+        <Aliases Condition="'$(WpfAero2ThemeAliases)'!=''">$(WpfAero2ThemeAliases)</Aliases>
+      </_WpfThemeAssemblies>
+
+      <_WpfThemeAssemblies Include="@(ReferencePath)"
+                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
+                                   '%(ReferencePath.FileName)'=='PresentationFramework.AeroLite'">
+        <Aliases Condition="'$(WpfAeroLiteThemeAliases)'!=''">$(WpfAeroLiteThemeAliases)</Aliases>
+      </_WpfThemeAssemblies>
+
+      <_WpfThemeAssemblies Include="@(ReferencePath)"
+                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
+                                   '%(ReferencePath.FileName)'=='PresentationFramework.Classic'">
+        <Aliases Condition="'$(WpfClassicThemeAliases)'!=''">$(WpfClassicThemeAliases)</Aliases>
+      </_WpfThemeAssemblies>
+
+      <_WpfThemeAssemblies Include="@(ReferencePath)"
+                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
+                                   '%(ReferencePath.FileName)'=='PresentationFramework.Luna'">
+        <Aliases Condition="'$(WpfLunaThemeAliases)'!=''">$(WpfLunaThemeAliases)</Aliases>
+      </_WpfThemeAssemblies>
+
+
+      <_WpfThemeAssemblies Include="@(ReferencePath)"
+                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
+                                   '%(ReferencePath.FileName)'=='PresentationFramework.Royale'">
+        <Aliases Condition="'$(WpfRoyaleThemeAliases)'!=''">$(WpfRoyaleThemeAliases)</Aliases>
+      </_WpfThemeAssemblies>
+
+
+      <ReferencePath Remove="@(_WpfThemeAssemblies)" />
+
+      <ReferencePath Include="@(_WpfThemeAssemblies)"
+                     Condition="('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Aero' And '$(ReferenceWpfAeroTheme)'=='true')          Or 
+                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Aero2' And '$(ReferenceWpfAero2Theme)'=='true')        Or 
+                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.AeroLite' And '$(ReferenceWpfAeroLiteTheme)'=='true')  Or 
+                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Classic' And '$(ReferenceWpfClassicTheme)'=='true')    Or 
+                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Luna' And '$(ReferenceWpfLunaTheme)'=='true')          Or
+                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Royale' And '$(ReferenceWpfRoyaleTheme)'=='true')" />
+    </ItemGroup>
+  </Target>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" Condition="$(NET) == 'true'" />
 </Project>

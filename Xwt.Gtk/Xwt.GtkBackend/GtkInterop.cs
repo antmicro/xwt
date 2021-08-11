@@ -33,7 +33,8 @@ using Xwt.Drawing;
 namespace Xwt.GtkBackend
 {
 	public static class GtkInterop
-	{
+	{//NET5_XWT
+#if NET && PLATFORM_WINDOWS
 		internal const string LIBATK          = "libatk-1.0-0.dll";
 		internal const string LIBGLIB         = "libglib-2.0-0.dll";
 		internal const string LIBGOBJECT      = "libgobject-2.0-0.dll";
@@ -54,6 +55,70 @@ namespace Xwt.GtkBackend
 		internal const string LIBGLIBGLUE     = "glibsharpglue-2";
 		internal const string LIBWEBKIT       = "libwebkitgtk-1.0-0.dll";
 		#endif
+#elif NET && PLATFORM_LINUX
+		internal const string LIBATK          = "libatk-1.0.so.0";
+		internal const string LIBGLIB         = "libglib-2.0.so.0";
+		internal const string LIBGOBJECT      = "libgobject-2.0.so.0";
+		internal const string LIBPANGO        = "libpango-1.0.so.0";
+		internal const string LIBPANGOCAIRO   = "libpangocairo-1.0.so.0";
+		internal const string LIBFONTCONFIG   = "libfontconfig.so.1";
+
+		#if XWT_GTK3
+		internal const string LIBGTK          = "libgtk-3.so.0";
+		internal const string LIBGDK          = "libgdk-3.so.0";
+		internal const string LIBGTKGLUE      = "gtksharpglue-3";
+		internal const string LIBGLIBGLUE     = "glibsharpglue-3";
+		internal const string LIBWEBKIT       = "libwebkitgtk-3.0.so.0";
+		#else
+		internal const string LIBGTK          = "libgtk-x11-2.0.so.0";
+		internal const string LIBGDK          = "libgdk-x11-2.0.so.0";
+		internal const string LIBGTKGLUE      = "gtksharpglue-2";
+		internal const string LIBGLIBGLUE     = "glibsharpglue-2";
+		internal const string LIBWEBKIT       = "libwebkitgtk-1.0.so.0";
+		#endif
+#elif NET && PLATFORM_OSX
+		internal const string LIBATK          = "libatk-1.0.0.dylib";
+		internal const string LIBGLIB         = "libglib-2.0.0.dylib";
+		internal const string LIBGOBJECT      = "libgobject-2.0.0.dylib";
+		internal const string LIBPANGO        = "libpango-1.0.0.dylib";
+		internal const string LIBPANGOCAIRO   = "libpangocairo-1.0.0.dylib";
+		internal const string LIBFONTCONFIG   = "libfontconfig.1.dylib";
+
+		#if XWT_GTK3
+		internal const string LIBGTK          = "libgtk-3.0.dylib";
+		internal const string LIBGDK          = "libgdk-3.0.dylib";
+		internal const string LIBGTKGLUE      = "gtksharpglue-3";
+		internal const string LIBGLIBGLUE     = "glibsharpglue-3";
+		internal const string LIBWEBKIT       = "libwebkitgtk-3.0.0.dylib";
+		#else
+		internal const string LIBGTK          = "libgtk-quartz-2.0.0.dylib";
+		internal const string LIBGDK          = "libgdk-quartz-2.0.0.dylib";
+		internal const string LIBGTKGLUE      = "gtksharpglue-2";
+		internal const string LIBGLIBGLUE     = "glibsharpglue-2";
+		internal const string LIBWEBKIT       = "libwebkitgtk-1.0.0.dylib";
+		#endif
+#else
+		internal const string LIBATK          = "libatk-1.0-0.dll";
+		internal const string LIBGLIB         = "libglib-2.0-0.dll";
+		internal const string LIBGOBJECT      = "libgobject-2.0-0.dll";
+		internal const string LIBPANGO        = "libpango-1.0-0.dll";
+		internal const string LIBPANGOCAIRO   = "libpangocairo-1.0-0.dll";
+		internal const string LIBFONTCONFIG   = "fontconfig";
+
+		#if XWT_GTK3
+		internal const string LIBGTK          = "libgtk-3-0.dll";
+		internal const string LIBGDK          = "libgdk-3-0.dll";
+		internal const string LIBGTKGLUE      = "gtksharpglue-3";
+		internal const string LIBGLIBGLUE     = "glibsharpglue-3";
+		internal const string LIBWEBKIT       = "libwebkitgtk-3.0-0.dll";
+		#else
+		internal const string LIBGTK          = "libgtk-win32-2.0-0.dll";
+		internal const string LIBGDK          = "libgdk-win32-2.0-0.dll";
+		internal const string LIBGTKGLUE      = "gtksharpglue-2";
+		internal const string LIBGLIBGLUE     = "glibsharpglue-2";
+		internal const string LIBWEBKIT       = "libwebkitgtk-1.0-0.dll";
+		#endif
+#endif
 	}
 
 	/// <summary>
