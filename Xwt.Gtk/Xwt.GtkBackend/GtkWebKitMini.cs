@@ -29,7 +29,7 @@ using System.Runtime.InteropServices;
 namespace Xwt.GtkBackend.WebKit
 {
 	#if XWT_GTK3
-	public class WebView : Gtk.Container, Gtk.IScrollable
+	public class WebView : Gtk.Container//, Gtk.IScrollable //NET5_XWT
 	#else
 	public class WebView : Gtk.Container
 	#endif

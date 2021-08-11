@@ -27,7 +27,7 @@ using System;
 
 namespace Xwt.GtkBackend
 {
-	public class GtkViewPort: Gtk.Bin, Gtk.IScrollableImplementor
+	public class GtkViewPort: Gtk.Bin//, Gtk.IScrollableImplementor //NET5_XWT
 	{
 		public GtkViewPort ()
 		{

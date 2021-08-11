@@ -93,7 +93,7 @@ namespace Xwt.GtkBackend
 				MenuBackend m = (MenuBackend) menu;
 				mainMenu = m.MenuBar;
 				mainBox.PackStart (mainMenu, false, false, 0);
-				((Gtk.Box.BoxChild)mainBox[mainMenu]).Position = 0;
+				// ((Gtk.Box.BoxChild)mainBox[mainMenu]).Position = 0; //NET5_XWT
 			} else
 				mainMenu = null;
 		}

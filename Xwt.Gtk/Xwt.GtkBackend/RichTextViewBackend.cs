@@ -547,7 +547,11 @@ namespace Xwt.GtkBackend
 			{
 				int x, y;
 				WindowToBufferCoords (Gtk.TextWindowType.Text, (int)mousex, (int)mousey, out x, out y);
-				var iter = GetIterAtLocation (x, y);
+			#if NET
+					GetIterAtLocation (out Gtk.TextIter iter, x, y); //NET5_XWT
+			#else
+					var iter = GetIterAtLocation (x, y);
+			#endif
 				if (Buffer != null) {
 					foreach (var l in Buffer.Links) {
 						if (iter.HasTag (l.Key)) {
@@ -615,12 +619,12 @@ namespace Xwt.GtkBackend
 				if (!IsRealized)
 					return;
 				var state = Selectable ? State : Gtk.StateType.Insensitive;
+				// NET5_XWT
+				// var bg = Style.Background (state);
+				// var bbg = Style.Base (state);
 
-				var bg = Style.Background (state);
-				var bbg = Style.Base (state);
-
-				GetWindow (Gtk.TextWindowType.Widget).Background = bg;
-				GetWindow (Gtk.TextWindowType.Text).Background = bbg;
+				// GetWindow (Gtk.TextWindowType.Widget).Background = bg;
+				// GetWindow (Gtk.TextWindowType.Text).Background = bbg;
 			}
 		}
 	}

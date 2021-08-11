@@ -36,17 +36,9 @@ namespace Xwt.WPFBackend
 	public class ScrollViewBackend
 		: WidgetBackend, IScrollViewBackend
 	{
-		private static readonly ResourceDictionary ScrollViewResourceDictionary;
-		static ScrollViewBackend ()
-		{
-			Uri uri = new Uri ("pack://application:,,,/Xwt.WPF;component/XWT.WPFBackend/ScrollView.xaml");
-			ScrollViewResourceDictionary = (ResourceDictionary) XamlReader.Load (System.Windows.Application.GetResourceStream (uri).Stream);
-		}
-
 		public ScrollViewBackend ()
 		{
 			ScrollViewer = new ExScrollViewer ();
-			ScrollViewer.Resources.MergedDictionaries.Add (ScrollViewResourceDictionary);
 			ScrollViewer.GotKeyboardFocus += ScrollViewer_GotKeyboardFocus;
 			ScrollViewer.LostKeyboardFocus += ScrollViewer_LostKeyboardFocus;
 		}

@@ -13,8 +13,8 @@ namespace Xwt.WPFBackend
 			get {
 				// AutomationEvents.AutomationFocusChanged returns false sometimes when the application loses
 				// accessibility focus. So LiveRegionChanged plays fallback role here (it comes as true more reliable).
-				return AutomationPeer.ListenerExists (AutomationEvents.AutomationFocusChanged)
-					|| AutomationPeer.ListenerExists (AutomationEvents.LiveRegionChanged);
+				return AutomationPeer.ListenerExists (AutomationEvents.AutomationFocusChanged);
+					// || AutomationPeer.ListenerExists (AutomationEvents.LiveRegionChanged);
 			}
 		}
 
@@ -26,7 +26,7 @@ namespace Xwt.WPFBackend
 			announcementResetTimer.Interval = new TimeSpan (0, 0, 5);
 			announcementResetTimer.Tick += (sender, args) => {
 				element?.Dispatcher.BeginInvoke ((Action) (() => {
-					AutomationProperties.SetLiveSetting (element, AutomationLiveSetting.Off);
+					// AutomationProperties.SetLiveSetting (element, AutomationLiveSetting.Off);
 					Label = previousAccessibleLabel;
 				}), DispatcherPriority.Normal);
 
@@ -34,12 +34,12 @@ namespace Xwt.WPFBackend
 			};
 
 			element.Dispatcher.BeginInvoke ((Action) (() => {
-				AutomationProperties.SetLiveSetting (element, polite ? AutomationLiveSetting.Polite : AutomationLiveSetting.Assertive);
+				// AutomationProperties.SetLiveSetting (element, polite ? AutomationLiveSetting.Polite : AutomationLiveSetting.Assertive);
 
 				Label = message;
 				var peer = FrameworkElementAutomationPeer.FromElement (element);
 				if (peer != null) {
-					peer.RaiseAutomationEvent (AutomationEvents.LiveRegionChanged);
+					// peer.RaiseAutomationEvent (AutomationEvents.LiveRegionChanged);
 
 					// HACK: Giving some time to announce the message
 					announcementResetTimer.Start ();

@@ -43,9 +43,10 @@ namespace Xwt.GtkBackend
 		}
 
 		public override object GetSystemDefaultFont ()
-		{
-			var style = Gtk.Rc.GetStyleByPaths (Gtk.Settings.Default, null, null, Gtk.Label.GType);
-			return style.FontDescription;
+		{	//NET5_XWT
+			// var style = Gtk.Rc.GetStyleByPaths (Gtk.Settings.Default, null, null, Gtk.Label.GType);
+			// return style.FontDescription;
+			return Gtk.Widget.DefaultStyle.FontDesc;
 		}
 
 		public override IEnumerable<string> GetInstalledFonts ()
