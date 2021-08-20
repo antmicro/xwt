@@ -27,7 +27,7 @@ using System;
 
 namespace Xwt.GtkBackend
 {
-	public class GtkViewPort: Gtk.Bin//, Gtk.IScrollableImplementor //NET5_XWT
+	public class GtkViewPort: Gtk.Bin, Gtk.IScrollableImplementor
 	{
 		public GtkViewPort ()
 		{
@@ -66,6 +66,10 @@ namespace Xwt.GtkBackend
 		public Gtk.ScrollablePolicy HscrollPolicy { get; set; }
 
 		public Gtk.ScrollablePolicy VscrollPolicy { get; set; }
+
+		public bool GetBorder(Gtk.Border border) {
+			return false;
+		}
 
 		protected override void OnAdded (Gtk.Widget widget)
 		{

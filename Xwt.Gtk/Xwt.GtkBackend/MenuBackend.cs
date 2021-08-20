@@ -75,7 +75,7 @@ namespace Xwt.GtkBackend
 
 		public virtual object Font {
 			get {
-				return customFont ?? Gtk.Widget.DefaultStyle.FontDesc; //return customFont ?? menu.Style.FontDescription; //NET5_XWT
+				return customFont ?? menu.Style.FontDesc;
 			}
 			set {
 				customFont = (Pango.FontDescription) value;

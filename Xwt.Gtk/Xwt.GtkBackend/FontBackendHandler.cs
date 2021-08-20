@@ -43,15 +43,13 @@ namespace Xwt.GtkBackend
 		}
 
 		public override object GetSystemDefaultFont ()
-		{	//NET5_XWT
-			// var style = Gtk.Rc.GetStyleByPaths (Gtk.Settings.Default, null, null, Gtk.Label.GType);
-			// return style.FontDescription;
+		{	
 			return Gtk.Widget.DefaultStyle.FontDesc;
 		}
 
 		public override IEnumerable<string> GetInstalledFonts ()
 		{
-			var fontNames = systemContext.FontMap.Families.Select (f => f.Name);
+			var fontNames = systemContext.Families.Select (f => f.Name);
 			if (Platform.IsMac) {
 				var macFonts = new string [] { "-apple-system-font", ".AppleSystemUIFont" }.AsEnumerable ();
 				return macFonts.Concat (fontNames);
@@ -61,7 +59,7 @@ namespace Xwt.GtkBackend
 
 		public override IEnumerable<KeyValuePair<string, object>> GetAvailableFamilyFaces (string family)
 		{
-			FontFamily pangoFamily = systemContext.FontMap.Families.FirstOrDefault (f => f.Name == family);
+			FontFamily pangoFamily = systemContext.Families.FirstOrDefault (f => f.Name == family);
 			if (pangoFamily != null) {
 				foreach (var face in pangoFamily.Faces)
 					yield return new KeyValuePair<string, object>(face.FaceName, face.Describe ());

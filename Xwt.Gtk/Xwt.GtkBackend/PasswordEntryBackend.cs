@@ -44,7 +44,7 @@ namespace Xwt.GtkBackend
 			}
 			set {
 				base.BackgroundColor = value;
-				// Widget.ModifyBase (Gtk.StateType.Normal, value.ToGtkValue ()); //NET5_XWT
+				Widget.ModifyBg (Gtk.StateType.Normal, value.ToGtkValue ());
 			}
 		}
 

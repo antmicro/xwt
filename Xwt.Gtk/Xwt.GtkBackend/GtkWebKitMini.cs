@@ -25,11 +25,12 @@
 // THE SOFTWARE.
 using System;
 using System.Runtime.InteropServices;
+using Gtk;
 
 namespace Xwt.GtkBackend.WebKit
 {
 	#if XWT_GTK3
-	public class WebView : Gtk.Container//, Gtk.IScrollable //NET5_XWT
+	public class WebView : Gtk.Container, Gtk.IScrollable
 	#else
 	public class WebView : Gtk.Container
 	#endif
@@ -158,6 +159,11 @@ namespace Xwt.GtkBackend.WebKit
 					SetProperty ("vscroll-policy", val);
 				}
 			}
+		}
+
+		public bool GetBorder(out Border border) {
+			border = Border.Zero;
+			return true;
 		}
 		#endif
 

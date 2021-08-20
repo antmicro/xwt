@@ -548,7 +548,7 @@ namespace Xwt.GtkBackend
 				int x, y;
 				WindowToBufferCoords (Gtk.TextWindowType.Text, (int)mousex, (int)mousey, out x, out y);
 			#if NET
-					GetIterAtLocation (out Gtk.TextIter iter, x, y); //NET5_XWT
+					GetIterAtLocation (out Gtk.TextIter iter, x, y);
 			#else
 					var iter = GetIterAtLocation (x, y);
 			#endif
