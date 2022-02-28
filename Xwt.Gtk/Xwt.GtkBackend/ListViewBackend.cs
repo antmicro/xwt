@@ -220,15 +220,12 @@ namespace Xwt.GtkBackend
 				path = path.Split (':') [0];
 			}
 			CurrentEventRow = int.Parse (path);
-		}
 
-        /* INTRODUCED BY houen */
-        public override void SetCurrentEventRow(string path)
-        {
-            SelectRow(int.Parse(path));
+			/* INTRODUCED BY houen */
+			SelectRow(int.Parse(path));
             //base.SetCurrentEventRow(path);
-        }
-        /* INTRODUCED BY houen */
+			/* INTRODUCED BY houen */
+		}
 	}
 }
 
