@@ -251,18 +251,6 @@ namespace Xwt.GtkBackend
 			return true;
 		}
 
-		private bool RunEventsQueue ()
-		{
-			while (eventsToRun.TryTake(out var action))
-			{
-				action ();
-			}
-
-			// returning `true` schedules another call on the next timer event
-			return true;
-		}
-
-
 		public override object TimerInvoke (Func<bool> action, TimeSpan timeSpan)
 		{
 			if (action == null)
