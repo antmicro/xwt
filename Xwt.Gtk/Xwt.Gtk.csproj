@@ -232,7 +232,6 @@
         DependsOnTargets="$(ResolveNuGetPackageAssetsDependsOn)"
         Condition="'$(ResolveNuGetPackages)' == 'true' and exists('$(ProjectLockFile)')">
   </Target>
-</Project>
   <ItemGroup>
     <EmbeddedResource Include="delete.png" />
   </ItemGroup>
