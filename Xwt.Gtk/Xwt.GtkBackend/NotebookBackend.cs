@@ -128,7 +128,7 @@ namespace Xwt.GtkBackend
             /* INTRODUCED BY houen */
                             
 			label.Show ();
-			vbox.PackStart(label);
+			vbox.PackStart(label, false, false, 0u);
 
 			if(!label.Text.StartsWith(char.ConvertFromUtf32(0x200B)))
 			{
