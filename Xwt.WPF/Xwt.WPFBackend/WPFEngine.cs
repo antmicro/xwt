@@ -124,6 +124,9 @@ namespace Xwt.WPFBackend
 			RegisterBackend<IWebViewBackend, WebViewBackend> ();
 			RegisterBackend<KeyboardHandler, WpfKeyboardHandler> ();
 			RegisterBackend<ICalendarBackend, CalendarBackend> ();
+			RegisterBackend<IPopupWindowBackend, WindowBackend>();
+			RegisterBackend<IUtilityWindowBackend, WindowBackend>();
+			RegisterBackend<IAccessibleBackend, AccessibleBackend>();
 		}
 
 		public override void DispatchPendingEvents()
@@ -169,11 +172,24 @@ namespace Xwt.WPFBackend
 			Timeout.CancelTimeout ((uint)id);
 		}
 
+		private void TimerTick(object sender, EventArgs e)
+		{
+			while (eventsToRun.TryTake(out var action))
+			{
+				action();
+			}
+		}
+
 		public override IWindowFrameBackend GetBackendForWindow (object nativeWindow)
 		{
 			return new WindowFrameBackend () {
 				Window = (System.Windows.Window) nativeWindow
 			};
+		}
+
+		public override object GetNativeWindow (IWindowFrameBackend backend)
+		{
+			return backend?.Window as System.Windows.Window;
 		}
 
 		public override object GetBackendForImage (object nativeImage)
@@ -216,12 +232,13 @@ namespace Xwt.WPFBackend
 			if (b is XwtWidgetBackend)
 				b = ((XwtWidgetBackend)b).NativeBackend;
 			IWpfWidgetBackend wb = (IWpfWidgetBackend)b;
-			return wb.Widget.Parent != null;
+			return VisualTreeHelper.GetParent (wb.Widget) != null;
 		}
 
 		public override object GetNativeImage (Image image)
 		{
-			return DataConverter.AsImageSource (Toolkit.GetBackend (image));
+			var source = (WpfImage)Toolkit.GetBackend (image);
+			return source.MainFrame ?? source.GetBestFrame (ApplicationContext, 1, image.Width, image.Height, true);
 		}
 
 		public override object RenderWidget (Widget widget)
@@ -236,13 +253,22 @@ namespace Xwt.WPFBackend
 			}
 		}
 
-		private void TimerTick(object sender, EventArgs e)
+		public override void RenderImage (object nativeWidget, object nativeContext, ImageDescription img, double x, double y)
 		{
-			while (eventsToRun.TryTake(out var action))
-			{
-				action();
-			}
+			WpfImage im = (WpfImage)img.Backend;
+			System.Windows.Media.DrawingContext dc = nativeContext as System.Windows.Media.DrawingContext;
+			FrameworkElement w = (FrameworkElement)nativeWidget;
+			if (dc != null)
+				im.Draw (ApplicationContext, dc, Util.GetScaleFactor (w), x, y, img);
+		}
+
+		public override Rectangle GetScreenBounds (object nativeWidget)
+		{
+			var widget = nativeWidget as FrameworkElement;
+			if (widget == null)
+				throw new InvalidOperationException("Widget belongs to a different toolkit");
+			var p = widget.PointToScreenDpiAware (new System.Windows.Point(0, 0)).ToXwtPoint ();
+			return new Rectangle(p, new Size (widget.RenderSize.Width, widget.RenderSize.Height));
 		}
 	}
 }
-

@@ -25,20 +25,9 @@
 // THE SOFTWARE.
 
 using System;
-using Xwt.Backends;
-
-#if MONOMAC
-using CGRect = System.Drawing.RectangleF;
-using CGPoint = System.Drawing.PointF;
-using CGSize = System.Drawing.SizeF;
-using MonoMac.AppKit;
-using MonoMac.Foundation;
-using System.Drawing;
-#else
 using AppKit;
-using Foundation;
 using CoreGraphics;
-#endif
+using Xwt.Backends;
 
 namespace Xwt.Mac
 {
@@ -54,7 +43,7 @@ namespace Xwt.Mac
 		{
 		}
 
-		public void Initialize (ApplicationContext actx)
+		public virtual void Initialize (ApplicationContext actx)
 		{
 			Context = actx;
 		}
@@ -118,7 +107,8 @@ namespace Xwt.Mac
 				AccessoryView.SetFrameSize (optionsSize);
 			}
 
-			var win = (WindowBackend)Toolkit.GetBackend (transientFor);
+			var win = Context.Toolkit.GetNativeWindow (transientFor) as NSWindow;
+			Window.ReleasedWhenClosed = true;
 			if (win != null)
 				return sortedButtons [(int)this.RunSheetModal (win) - 1000];
 			return sortedButtons [(int)this.RunModal () - 1000];
@@ -126,5 +116,23 @@ namespace Xwt.Mac
 
 		public bool ApplyToAll { get; set; }
 		#endregion
+
+		public override bool ConformsToProtocol (IntPtr protocol)
+		{
+			// HACK: for some reason on systems with a TouchBar this might be called
+			//       after the window has been closed and released, resulting in
+			//       an ObjectDisposedException followed by a crash
+			if (isDisposed)
+				return false;
+
+			return base.ConformsToProtocol (protocol);
+		}
+
+		bool isDisposed;
+		protected override void Dispose (bool disposing)
+		{
+			isDisposed = true;
+			base.Dispose (disposing);
+		}
 	}
 }

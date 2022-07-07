@@ -26,20 +26,20 @@
 
 using System;
 using System.ComponentModel;
-using System.Windows.Markup;
+using System.Collections.Generic;
+using System.Globalization;
 
 namespace Xwt.Drawing
 {
 	[TypeConverter (typeof(ColorValueConverter))]
-	[ValueSerializer (typeof(ColorValueSerializer))]
 	[Serializable]
-	public struct Color
+	public struct Color : IEquatable<Color>
 	{
 		double r, g, b, a;
 
 		[NonSerialized]
 		HslColor hsl;
-		
+
 		public double Red {
 			get { return r; }
 			set { r = Normalize (value); hsl = null; }
@@ -232,8 +232,17 @@ namespace Xwt.Drawing
 			if (name == null)
 				throw new ArgumentNullException ("name");
 
+			if (name.Length == 0) {
+				color = default (Color);
+				return false;
+			}
+
+			if (name[0] != '#' && Colors.TryGetNamedColor (name, out color)) {
+				return true;
+			}
+
 			uint val;
-			if (name.Length == 0 || !TryParseColourFromHex (name, out val)) {
+			if (!TryParseColourFromHex (name, out val)) {
 				color = default (Color);
 				return false;
 			}
@@ -277,6 +286,11 @@ namespace Xwt.Drawing
 		
 			return (this == (Color) o);
 		}
+
+		public bool Equals(Color other)
+		{
+			return this == other;
+		}
 		
 		public override int GetHashCode ()
 		{
@@ -294,16 +308,19 @@ namespace Xwt.Drawing
 			return string.Format ("[Color: Red={0}, Green={1}, Blue={2}, Alpha={3}]", Red, Green, Blue, Alpha);
 		}
 
-		public string ToHexString ()
+		public string ToHexString (bool withAlpha = true)
 		{
-			return "#" + ((int)(Red * 255)).ToString ("x2") + ((int)(Green * 255)).ToString ("x2") + ((int)(Blue * 255)).ToString ("x2") + ((int)(Alpha * 255)).ToString ("x2");
+			var rgb = "#" + ((int)(Red * 255)).ToString ("x2") + ((int)(Green * 255)).ToString ("x2") + ((int)(Blue * 255)).ToString ("x2");
+
+			if (withAlpha)
+				return rgb + ((int)(Alpha * 255)).ToString ("x2");
+			else
+				return rgb;
 		}
 	}
 
 	class ColorValueConverter: TypeConverter
 	{
-		static readonly ColorValueSerializer serializer = new ColorValueSerializer ();
-
 		public override bool CanConvertTo (ITypeDescriptorContext context, Type destinationType)
 		{
 			return destinationType == typeof(string);
@@ -316,40 +333,17 @@ namespace Xwt.Drawing
 
 		public override object ConvertTo (ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
 		{
-			return serializer.ConvertToString (value, null);
+			Color s = (Color)value;
+			return s.ToHexString();
 		}
 
 		public override object ConvertFrom (ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
 		{
-			return serializer.ConvertFromString ((string)value, null);
-		}
-	}
-	
-	class ColorValueSerializer: ValueSerializer
-	{
-		public override bool CanConvertFromString (string value, IValueSerializerContext context)
-		{
-			return true;
-		}
-		
-		public override bool CanConvertToString (object value, IValueSerializerContext context)
-		{
-			return true;
-		}
-		
-		public override string ConvertToString (object value, IValueSerializerContext context)
-		{
-			Color s = (Color) value;
-			return s.ToHexString ();
-		}
-		
-		public override object ConvertFromString (string value, IValueSerializerContext context)
-		{
 			Color c;
-			if (Color.TryParse (value, out c))
+			if (Color.TryParse((string)value, out c))
 				return c;
 			else
-				throw new InvalidOperationException ("Could not parse color value: " + value);
+				throw new InvalidOperationException("Could not parse color value: " + value);
 		}
 	}
 }

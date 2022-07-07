@@ -26,7 +26,6 @@
 
 using System;
 using Xwt.Backends;
-using System.Windows.Markup;
 using System.ComponentModel;
 using System.Text;
 using System.Globalization;
@@ -38,7 +37,6 @@ using System.Linq;
 namespace Xwt.Drawing
 {
 	[TypeConverter (typeof(FontValueConverter))]
-	[ValueSerializer (typeof(FontValueSerializer))]
 	public sealed class Font: XwtObject
 	{
 		FontBackendHandler handler;
@@ -66,10 +64,22 @@ namespace Xwt.Drawing
 				var style = Style;
 				var weight = Weight;
 				var stretch = Stretch;
+				var oldHandler = ToolkitEngine.FontBackendHandler;
 				ToolkitEngine = tk;
 				handler = tk.FontBackendHandler;
-				var fb = handler.Create (fname, size, style, weight, stretch);
-				Backend = fb ?? handler.GetSystemDefaultFont ();
+
+				if (fname == oldHandler.SystemFont.Family)
+					Backend = handler.WithSettings (handler.SystemFont.Backend, size, style, weight, stretch);
+				else if (fname == oldHandler.SystemMonospaceFont.Family)
+					Backend = handler.WithSettings (handler.SystemMonospaceFont.Backend, size, style, weight, stretch);
+				else if (fname == oldHandler.SystemSansSerifFont.Family)
+					Backend = handler.WithSettings (handler.SystemSansSerifFont.Backend, size, style, weight, stretch);
+				else if (fname == oldHandler.SystemSerifFont.Family)
+					Backend = handler.WithSettings (handler.SystemSerifFont.Backend, size, style, weight, stretch);
+				else {
+					var fb = handler.Create (fname, size, style, weight, stretch);
+					Backend = fb ?? handler.WithSettings(handler.GetSystemDefaultFont (), size, style, weight, stretch);
+				}
 			}
 		}
 
@@ -121,6 +131,11 @@ namespace Xwt.Drawing
 
 		internal static Font FromName (string name, Toolkit toolkit)
 		{
+			if (name == null)
+				throw new ArgumentNullException (nameof (name), "Font name cannot be null");
+			if (name.Length == 0)
+				return toolkit.FontBackendHandler.SystemFont;
+			
 			var handler = toolkit.FontBackendHandler;
 
 			double size = -1;
@@ -131,13 +146,18 @@ namespace Xwt.Drawing
 			int i = name.LastIndexOf (' ');
 			int lasti = name.Length;
 			do {
+				if (lasti > 0 && IsFontSupported (name.Substring (0, lasti)))
+					break;
+				
 				string token = name.Substring (i + 1, lasti - i - 1);
 				FontStyle st;
 				FontWeight fw;
 				FontStretch fs;
 				double siz;
-				if (double.TryParse (token, NumberStyles.Any, CultureInfo.InvariantCulture, out siz)) // Try parsing the number first, since Enum.TryParse can also parse numbers
-					size = siz;
+				if (double.TryParse (token, NumberStyles.Any, CultureInfo.InvariantCulture, out siz)) { // Try parsing the number first, since Enum.TryParse can also parse numbers
+					if (size == -1) // take only first number
+						size = siz;
+				}
 				else if (Enum.TryParse<FontStyle> (token, true, out st) && st != FontStyle.Normal)
 					style = st;
 				else if (Enum.TryParse<FontWeight> (token, true, out fw) && fw != FontWeight.Normal)
@@ -165,6 +185,18 @@ namespace Xwt.Drawing
 				return new Font (fb, toolkit);
 			else
 				return Font.SystemFont;
+		}
+
+		static bool IsFontSupported (string fontName)
+		{
+			if (fontName == null)
+				throw new ArgumentNullException(nameof (fontName), "Font family name not provided");
+			if (fontName == string.Empty)
+				return false;
+			
+			LoadInstalledFonts ();
+			
+			return installedFonts.ContainsKey (fontName.Trim ());
 		}
 
 		static string GetSupportedFont (string fontNames)
@@ -195,7 +227,8 @@ namespace Xwt.Drawing
 
 		static string GetDefaultFont (string unknownFont)
 		{
-			Console.WriteLine ("Font '" + unknownFont + "' not available in the system. Using '" + Font.SystemFont.Family + "' instead");
+			if (unknownFont != Font.SystemFont.Family) // ignore rare case when the default system font is not registered
+				Console.WriteLine ("Font '" + unknownFont + "' not available in the system. Using '" + Font.SystemFont.Family + "' instead");
 			return Font.SystemFont.Family;
 		}
 
@@ -210,6 +243,12 @@ namespace Xwt.Drawing
 				foreach (var f in Toolkit.CurrentEngine.FontBackendHandler.GetInstalledFonts ())
 					installedFonts [f] = f;
 				installedFontsArray = new ReadOnlyCollection<string> (installedFonts.Values.ToArray ());
+				// add dummy font names for unit tests, the names are not exposed to users
+				// see the FontNameWith* tests (Testing/Tests/FontTests.cs) for details
+				installedFonts.Add("____FakeTestFont 72", "Arial");
+				installedFonts.Add ("____FakeTestFont Rounded MT Bold", "Arial");
+				// HACK: add font mapping for patched pango SF Font support
+				installedFonts ["-apple-system-font"] = ".AppleSystemUIFont";
 			}
 		}
 
@@ -302,7 +341,7 @@ namespace Xwt.Drawing
 
 		public Font WithSize (double size)
 		{
-			return new Font (handler.SetSize (Backend, size));
+			return new Font (handler.SetSize (Backend, size), ToolkitEngine);
 		}
 		
 		public Font WithScaledSize (double scale)
@@ -343,15 +382,29 @@ namespace Xwt.Drawing
 			return new Font (handler.SetStretch (Backend, stretch), ToolkitEngine);
 		}
 
+		public Font WithSettings (Font fromFont)
+		{
+			return WithSettings (fromFont.Size, fromFont.Style, fromFont.Weight, fromFont.Stretch);
+		}
+
+		public Font WithSettings (double size, FontStyle style, FontWeight weight, FontStretch stretch)
+		{
+			var backend = handler.SetSize (Backend, size);
+			backend = handler.SetStyle (backend, style);
+			backend = handler.SetWeight (backend, weight);
+			backend = handler.SetStretch (backend, stretch);
+			return new Font (backend, ToolkitEngine);
+		}
+
 		public override string ToString ()
 		{
 			StringBuilder sb = new StringBuilder (Family);
 			if (Style != FontStyle.Normal)
-				sb.Append (' ').Append (Style);
+				sb.Append (' ').Append (Style.ToString ());
 			if (Weight != FontWeight.Normal)
-				sb.Append (' ').Append (Weight);
+				sb.Append (' ').Append (Weight.ToString ());
 			if (Stretch != FontStretch.Normal)
-				sb.Append (' ').Append (Stretch);
+				sb.Append (' ').Append (Stretch.ToString ());
 			sb.Append (' ').Append (Size.ToString (CultureInfo.InvariantCulture));
 			return sb.ToString ();
 		}
@@ -416,6 +469,8 @@ namespace Xwt.Drawing
 	
 	public enum FontWeight
 	{
+		/// The UltraThin weight (50)
+		Ultrathin = 50,
 		/// The thin weight (100)
 		Thin = 100,
 		/// The ultra light weight (200)
@@ -425,11 +480,13 @@ namespace Xwt.Drawing
 		/// The semi light weight (350)
 		Semilight = 350,
 		/// The book weight (380)
-		Book = 350,
+		Book = 380,
 		/// The default weight (400)
 		Normal = 400,
 		/// The medium weight (500)
 		Medium = 500,
+		/// Between medium an Semibold (550)
+		Mediumbold = 550,
 		/// The semi bold weight (600)
 		Semibold = 600,
 		/// The bold weight (700)
@@ -438,8 +495,14 @@ namespace Xwt.Drawing
 		Ultrabold = 800,
 		/// The heavy weight (900)
 		Heavy = 900,
+		/// The heavy2 weight (920)
+		Ultraheavy = 950,
+		/// The heavy3 weight (940)
+		Semiblack = 960,
+		/// The heavy3 weight (960)
+		Black = 980,
 		/// The ultra heavy weight (1000)
-		Ultraheavy = 1000
+		Ultrablack = 999
 	}
 	
 	public enum FontStretch
@@ -493,29 +556,6 @@ namespace Xwt.Drawing
 		public override bool CanConvertFrom (ITypeDescriptorContext context, Type sourceType)
 		{
 			return sourceType == typeof(string);
-		}
-	}
-	
-	class FontValueSerializer: ValueSerializer
-	{
-		public override bool CanConvertFromString (string value, IValueSerializerContext context)
-		{
-			return true;
-		}
-		
-		public override bool CanConvertToString (object value, IValueSerializerContext context)
-		{
-			return true;
-		}
-		
-		public override string ConvertToString (object value, IValueSerializerContext context)
-		{
-			return value.ToString ();
-		}
-		
-		public override object ConvertFromString (string value, IValueSerializerContext context)
-		{
-			return Font.FromName (value);
 		}
 	}
 }

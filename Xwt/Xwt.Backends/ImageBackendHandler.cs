@@ -99,7 +99,7 @@ namespace Xwt.Backends
 		/// <param name="handle">Image handle.</param>
 		/// <param name="width">Width.</param>
 		/// <param name="height">Height.</param>
-		public abstract object ConvertToBitmap (object handle, double width, double height, double scaleFactor, ImageFormat format);
+		public abstract object ConvertToBitmap (ImageDescription idesc, double scaleFactor, ImageFormat format);
 
 		/// <summary>
 		/// Returns True if the image has multiple representations of different sizes.
@@ -119,6 +119,13 @@ namespace Xwt.Backends
 		/// </remarks>
 		public abstract Size GetSize (object handle);
 		
+		/// <summary>
+		/// Gets the size of an image without loading the entire file.
+		/// </summary>
+		/// <param name="file">The path to the image</param>
+		/// <returns>The size of the image</returns>
+		public abstract Size GetSize (string file);
+
 		public abstract object CopyBitmap (object handle);
 
 		public abstract void CopyBitmapArea (object srcHandle, int srcX, int srcY, int width, int height, object destHandle, int destX, int destY);
@@ -131,14 +138,14 @@ namespace Xwt.Backends
 
 	}
 
-    public enum ImagePixelFormat
-    {
-        BGR888,
-        RGB565,
-        BGRA8888
-    }
+	public enum ImagePixelFormat
+	{
+		BGR888,
+		RGB565,
+		BGRA8888
+	}
 
-	public delegate void ImageDrawCallback (object contextBackend, Rectangle bounds);
+	public delegate void ImageDrawCallback (object contextBackend, Rectangle bounds, ImageDescription idesc, Toolkit toolkit);
 
 	public struct ImageDescription
 	{
@@ -151,6 +158,7 @@ namespace Xwt.Backends
 		public object Backend { get; set; }
 		public Size Size { get; set; }
 		public double Alpha { get; set; }
+		public StyleSet Styles { get; set; }
 	}
 }
 

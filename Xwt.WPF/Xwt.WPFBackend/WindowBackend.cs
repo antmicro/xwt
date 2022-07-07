@@ -38,13 +38,16 @@ using Xwt.Backends;
 
 namespace Xwt.WPFBackend
 {
-	public class WindowBackend : WindowFrameBackend, IWindowBackend
+	public class WindowBackend : WindowFrameBackend, IWindowBackend, IPopupWindowBackend, IUtilityWindowBackend
 	{
 		protected Grid rootPanel;
 		public System.Windows.Controls.Menu mainMenu;
 		MenuBackend mainMenuBackend;
 		FrameworkElement widget;
 		DockPanel contentBox;
+		WindowStyle defaultWindowStyle = WindowStyle.SingleBorderWindow;
+
+		public int Id { get; set; }
 
 		public WindowBackend ()
 		{
@@ -64,10 +67,29 @@ namespace Xwt.WPFBackend
 			get { return (WpfWindow)base.Window; }
 		}
 
+		bool initialized;
+
 		public override void Initialize ()
 		{
-			base.Initialize ();
-			Window.Frontend = (Window) Frontend;
+			if (!initialized) {
+				base.Initialize();
+				Window.Frontend = (Window)Frontend;
+				if (Frontend is UtilityWindow)
+					defaultWindowStyle = WindowStyle.ToolWindow;
+				Decorated = true;
+				initialized = true;
+			}
+		}
+
+		public void Initialize(IWindowFrameEventSink sink, PopupWindow.PopupType type)
+		{
+			if (!initialized) {
+				base.Initialize();
+				Window.Frontend = (Window)Frontend;
+				defaultWindowStyle = WindowStyle.ToolWindow;
+				Decorated = false;
+				initialized = true;
+			}
 		}
 
 		// A Grid with a single column, and two rows (menu and child control).
@@ -84,6 +106,18 @@ namespace Xwt.WPFBackend
 			grid.RowDefinitions.Add (contentRow);
 
 			return grid;
+		}
+
+		public override bool Decorated
+		{
+			get { return base.Decorated; }
+			set
+			{
+				base.Decorated = value;
+				if (value)
+					Window.WindowStyle = defaultWindowStyle;
+				Window.AllowsTransparency = Window.WindowStyle == WindowStyle.None && BackgroundColor.Alpha < 1.0;
+			}
 		}
 
 		public override bool HasMenu {
@@ -188,6 +222,14 @@ namespace Xwt.WPFBackend
 		{
 			Window.ResetBorderSize ();
 		}
+
+		public Xwt.Drawing.Color BackgroundColor {
+			get { return Window.Background.ToXwtColor (); }
+			set {
+				Window.Background = ResPool.GetSolidBrush (value);
+				Window.AllowsTransparency = Window.WindowStyle == WindowStyle.None && value.Alpha < 1.0;
+			}
+		}
 	}
 
 	class WpfWindow : System.Windows.Window
@@ -240,7 +282,7 @@ namespace Xwt.WPFBackend
 				if (PresentationSource.FromVisual (c) == null)
 					return new Rectangle (initialX, initialY, w, h);
 				else {
-					var p = c.PointToScreen (new SW.Point (0, 0));
+					var p = c.PointToScreenDpiAware (new SW.Point (0, 0));
 					return new Rectangle (p.X, p.Y, w, h);
 				}
 			}
@@ -295,7 +337,7 @@ namespace Xwt.WPFBackend
 				return;
 
 			var c = (FrameworkElement)Content;
-			var p = c.PointToScreen (new SW.Point (0, 0));
+			var p = c.PointToScreenDpiAware (new SW.Point (0, 0));
 			var left = p.X - Left;
 			var top = p.Y - Top;
 			frameBorder = new WidgetSpacing (left, top, windowWidth - c.ActualWidth - left, windowHeight - c.ActualHeight - top);

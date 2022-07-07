@@ -88,14 +88,8 @@ namespace Xwt.Backends
 		/// <remarks>To be called by the subclass when there is a change in the configuration of screens</remarks>
 		public void OnScreensChanged ()
 		{
-			ApplicationContext.InvokeUserCode (delegate {
-				Desktop.NotifyScreensChanged ();
-			});
+			ApplicationContext.InvokeUserCode (Desktop.NotifyScreensChanged);
 		}
-
-        #pragma warning disable 169
-		Xwt.Drawing.Image blankImage;
-        #pragma warning restore 169
 
 		public virtual void OpenFile (string filename)
 		{

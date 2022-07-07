@@ -25,29 +25,19 @@
 // THE SOFTWARE.
 
 using System;
-
 using System.Collections.Generic;
-using Xwt.Backends;
-
-#if MONOMAC
-using nint = System.Int32;
-using nfloat = System.Single;
-using CGSize = System.Drawing.SizeF;
-using MonoMac.Foundation;
-using MonoMac.AppKit;
-using MonoMac.ObjCRuntime;
-using MonoMac.CoreGraphics;
-#else
-using Foundation;
 using AppKit;
-using ObjCRuntime;
 using CoreGraphics;
-#endif
+using Foundation;
+using ObjCRuntime;
+using Xwt.Backends;
 
 namespace Xwt.Mac
 {
 	public class MacEngine: Xwt.Backends.ToolkitEngineBackend
 	{
+		public static Func<bool, AppDelegate> AppDelegateFactory;
+
 		static AppDelegate appDelegate;
 		static NSAutoreleasePool pool;
 		
@@ -57,19 +47,29 @@ namespace Xwt.Mac
 		
 		public override void InitializeApplication ()
 		{
-			NSApplication.Init ();
-			//Hijack ();
-			if (pool != null)
-				pool.Dispose ();
-			pool = new NSAutoreleasePool ();
-			appDelegate = new AppDelegate (IsGuest);
-			NSApplication.SharedApplication.Delegate = appDelegate;
+			if (InitializeToolkit)
+			{
+				NSApplicationInitializer.Initialize();
 
-			// If NSPrincipalClass is not set, set it now. This allows running
-			// the application without a bundle
-			var info = NSBundle.MainBundle.InfoDictionary;
-			if (info.ValueForKey ((NSString)"NSPrincipalClass") == null)
-				info.SetValueForKey ((NSString)"NSApplication", (NSString)"NSPrincipalClass");
+				//Hijack ();
+				if (pool != null)
+					pool.Dispose();
+				pool = new NSAutoreleasePool();
+				appDelegate = AppDelegateFactory?.Invoke(IsGuest) ?? new AppDelegate(IsGuest);
+				NSApplication.SharedApplication.Delegate = appDelegate;
+
+				// If NSPrincipalClass is not set, set it now. This allows running
+				// the application without a bundle
+				var info = NSBundle.MainBundle.InfoDictionary;
+				if (info.ValueForKey((NSString)"NSPrincipalClass") == null)
+					info.SetValueForKey((NSString)"NSApplication", (NSString)"NSPrincipalClass");
+			}
+			else
+			{
+				// Although the AppDelegate does not need to be hijacked, keep this allocated
+				// as there are some non-NSApplicationDelegate methods still used by Xwt
+				appDelegate = new AppDelegate(IsGuest);
+			}
 		}
 
 		public override void InitializeBackends ()
@@ -137,6 +137,10 @@ namespace Xwt.Mac
 			RegisterBackend <Xwt.Backends.IColorPickerBackend, ColorPickerBackend> ();
 			RegisterBackend <Xwt.Backends.ICalendarBackend,CalendarBackend> ();
 			RegisterBackend <Xwt.Backends.ISelectFontDialogBackend, SelectFontDialogBackend> ();
+			RegisterBackend <Xwt.Backends.IAccessibleBackend, AccessibleBackend> ();
+			RegisterBackend <Xwt.Backends.IPopupWindowBackend, PopupWindowBackend> ();
+			RegisterBackend <Xwt.Backends.IUtilityWindowBackend, PopupWindowBackend> ();
+			RegisterBackend <Xwt.Backends.ISearchTextEntryBackend, SearchTextEntryBackend> ();
 		}
 
 		public override void RunApplication ()
@@ -149,6 +153,14 @@ namespace Xwt.Mac
 		public override void ExitApplication ()
 		{
 			NSApplication.SharedApplication.Terminate(appDelegate);
+		}
+
+		public override void ExitApplication(int exitCode)
+		{
+			if (exitCode == 0)
+				NSApplication.SharedApplication.Terminate(appDelegate);
+			else
+				Environment.Exit(exitCode);
 		}
 
 		static Selector hijackedSel = new Selector ("hijacked_loadNibNamed:owner:");
@@ -175,9 +187,7 @@ namespace Xwt.Mac
 			if (action == null)
 				throw new ArgumentNullException ("action");
 
-			NSRunLoop.Main.BeginInvokeOnMainThread (delegate {
-				action ();
-			});
+			NSRunLoop.Main.BeginInvokeOnMainThread (action);
 		}
 		
 		public override object TimerInvoke (Func<bool> action, TimeSpan timeSpan)
@@ -205,6 +215,20 @@ namespace Xwt.Mac
 			return wb.Widget;
 		}
 
+		public override object GetNativeImage (Xwt.Drawing.Image image)
+		{
+			if (image == null)
+				return null;
+			var img = (NSImage)base.GetNativeImage (image);
+			if (img is CustomImage) {
+				img = ((CustomImage)img).Clone ();
+				var idesc = image.ToImageDescription (ApplicationContext);
+				((CustomImage)img).Image = idesc;
+			}
+			img.Size = new CGSize ((nfloat)image.Size.Width, (nfloat)image.Size.Height);
+			return img;
+		}
+
 		public override bool HasNativeParent (Widget w)
 		{
 			var wb = GetNativeBackend (w);
@@ -223,7 +247,18 @@ namespace Xwt.Mac
 
 		public override Xwt.Backends.IWindowFrameBackend GetBackendForWindow (object nativeWindow)
 		{
-			throw new NotImplementedException ();
+			return new WindowFrameBackend ((NSWindow) nativeWindow);
+		}
+
+		public override object GetNativeWindow (IWindowFrameBackend backend)
+		{
+			if (backend == null)
+				return null;
+			if (backend.Window is NSWindow)
+				return backend.Window;
+			if (Desktop.DesktopType == DesktopType.Mac && Toolkit.NativeEngine == ApplicationContext.Toolkit)
+				return Runtime.GetNSObject (backend.NativeHandle) as NSWindow;
+			return null;
 		}
 
 		public override object GetBackendForContext (object nativeWidget, object nativeContext)
@@ -237,47 +272,68 @@ namespace Xwt.Mac
 		{
 			var until = NSDate.DistantPast;
 			var app = NSApplication.SharedApplication;
-			var p = new NSAutoreleasePool ();
-			while (true) {
-				var ev = app.NextEvent (NSEventMask.AnyEvent, until, NSRunLoop.NSDefaultRunLoopMode, true);
-				if (ev != null)
-					app.SendEvent (ev);
-				else
-					break;
+			using (var p = new NSAutoreleasePool()) {
+				while (true) {
+					var ev = app.NextEvent(NSEventMask.AnyEvent, until, NSRunLoopMode.Default, true);
+					if (ev != null)
+						app.SendEvent(ev);
+					else
+						break;
+				}
 			}
-			p.Dispose ();
 		}
 
 		public override object RenderWidget (Widget w)
 		{
 			var view = ((ViewBackend)w.GetBackend ()).Widget;
 			view.LockFocus ();
-			var img = new NSImage (view.DataWithPdfInsideRect (view.Bounds));
-			var imageData = img.AsTiff ();
-			var imageRep = (NSBitmapImageRep)NSBitmapImageRep.ImageRepFromData (imageData);
-			var im = new NSImage ();
-			im.AddRepresentation (imageRep);
-			im.Size = new CGSize ((nfloat)view.Bounds.Width, (nfloat)view.Bounds.Height);
-			return im;
+			using (var img = new NSImage(view.DataWithPdfInsideRect(view.Bounds)))
+			using (var imageData = img.AsTiff()) {
+				var imageRep = (NSBitmapImageRep)NSBitmapImageRep.ImageRepFromData(imageData);
+				var im = new NSImage ();
+				im.AddRepresentation (imageRep);
+				im.Size = new CGSize ((nfloat)view.Bounds.Width, (nfloat)view.Bounds.Height);
+				return im;
+			}
+		}
+
+		public override Rectangle GetScreenBounds (object nativeWidget)
+		{
+			var widget = nativeWidget as NSView;
+			if (widget == null)
+				throw new InvalidOperationException ("Widget belongs to a different toolkit");
+			var lo = widget.ConvertPointToView (new CGPoint(0, 0), null);
+			lo = widget.Window.ConvertRectToScreen (new CGRect (lo, CGSize.Empty)).Location;
+			return MacDesktopBackend.ToDesktopRect (new CGRect (lo.X, lo.Y, widget.Frame.Width, widget.Frame.Height));
 		}
 	}
 
 	public class AppDelegate : NSApplicationDelegate
 	{
 		bool launched;
-		List<WindowBackend> pendingWindows = new List<WindowBackend> ();
+		List<IMacWindowBackend> pendingWindows = new List<IMacWindowBackend> ();
+
+		public enum LaunchType
+		{
+			Unknown,
+			Normal,
+			LaunchedFromFileManager
+		}
+
+		public LaunchType LaunchReason { get; private set; } = LaunchType.Unknown;
 
 		public event EventHandler<TerminationEventArgs> Terminating;
 		public event EventHandler Unhidden;
 		public event EventHandler<OpenFilesEventArgs> OpenFilesRequest;
 		public event EventHandler<OpenUrlEventArgs> OpenUrl;
+		public event EventHandler<ShowDockMenuArgs> ShowDockMenu;
 		
 		public AppDelegate (bool launched)
 		{
 			this.launched = launched;
 		}
 		
-		internal void ShowWindow (WindowBackend w)
+		internal void ShowWindow (IMacWindowBackend w)
 		{
 			if (!launched) {
 				if (!pendingWindows.Contains (w))
@@ -290,13 +346,25 @@ namespace Xwt.Mac
 		public override void DidFinishLaunching (NSNotification notification)
 		{
 			launched = true;
+
+			NSObject val;
+			if (notification.UserInfo.TryGetValue (NSApplication.LaunchIsDefaultLaunchKey, out val)) {
+				var num = val as NSNumber;
+				if (num != null) {
+					LaunchReason = num.BoolValue ? LaunchType.Normal : LaunchType.LaunchedFromFileManager;
+				}
+			}
+
 			foreach (var w in pendingWindows)
 				w.InternalShow ();
+		}
 
+		public override void WillFinishLaunching(NSNotification notification)
+		{
 			NSAppleEventManager eventManager = NSAppleEventManager.SharedAppleEventManager;
 			eventManager.SetEventHandler (this, new Selector ("handleGetURLEvent:withReplyEvent:"), AEEventClass.Internet, AEEventID.GetUrl);
 		}
-			
+
 		[Export("handleGetURLEvent:withReplyEvent:")]
 		void HandleGetUrlEvent(NSAppleEventDescriptor descriptor, NSAppleEventDescriptor reply)
 		{
@@ -347,6 +415,19 @@ namespace Xwt.Mac
 				openFilesEvent (NSApplication.SharedApplication, args);
 			}
 		}
+
+		public override NSMenu ApplicationDockMenu (NSApplication sender)
+		{
+			NSMenu retMenu = null;
+			var showDockMenuEvent = ShowDockMenu;
+			if (showDockMenuEvent != null) {
+				var args = new ShowDockMenuArgs ();
+				showDockMenuEvent (NSApplication.SharedApplication, args);
+				retMenu = args.DockMenu;
+			}
+
+			return retMenu;
+		}
 	}
 
 	public class TerminationEventArgs : EventArgs
@@ -375,5 +456,10 @@ namespace Xwt.Mac
 		{
 			Url = url;
 		}
+	}
+
+	public class ShowDockMenuArgs : EventArgs
+	{
+		public NSMenu DockMenu { get; set; }
 	}
 }

@@ -23,15 +23,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using System;
 
-#if MONOMAC
-using nint = System.Int32;
-using nfloat = System.Single;
-using MonoMac.AppKit;
-#else
+using System;
 using AppKit;
-#endif
 
 namespace Xwt.Mac
 {
@@ -41,7 +35,7 @@ namespace Xwt.Mac
 		{
 			Key key = GetXwtKey(keyEvent);
 			ModifierKeys mod = keyEvent.ModifierFlags.ToXwtValue ();
-			return new KeyEventArgs (key, keyEvent.KeyCode, mod, keyEvent.IsARepeat, (long)TimeSpan.FromSeconds (keyEvent.Timestamp).TotalMilliseconds);
+			return new KeyEventArgs (key, keyEvent.KeyCode, mod, keyEvent.IsARepeat, (long)TimeSpan.FromSeconds (keyEvent.Timestamp).TotalMilliseconds, keyEvent.Characters, keyEvent.CharactersIgnoringModifiers);
 		}
 
 		static Key GetXwtKey (NSEvent keyEvent)

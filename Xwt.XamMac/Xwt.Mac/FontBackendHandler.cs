@@ -25,23 +25,14 @@
 // THE SOFTWARE.
 
 using System;
-using Xwt.Backends;
-using Xwt.Drawing;
 using System.Collections.Generic;
-using System.Text;
 using System.Globalization;
-
-#if MONOMAC
-using nint = System.Int32;
-using nfloat = System.Single;
-using MonoMac.Foundation;
-using MonoMac.AppKit;
-using MonoMac.CoreText;
-#else
-using Foundation;
+using System.Text;
 using AppKit;
 using CoreText;
-#endif
+using Foundation;
+using Xwt.Backends;
+using Xwt.Drawing;
 
 namespace Xwt.Mac
 {
@@ -55,7 +46,7 @@ namespace Xwt.Mac
 		public override object GetSystemDefaultMonospaceFont ()
 		{
 			var font = NSFont.SystemFontOfSize (0);
-			return Create ("Menlo", font.PointSize, FontStyle.Normal, FontWeight.Normal, FontStretch.Normal);
+			return Create (GetDefaultMonospaceFontNames(Desktop.DesktopType), font.PointSize, FontStyle.Normal, FontWeight.Normal, FontStretch.Normal);
 		}
 
 		public override IEnumerable<string> GetInstalledFonts ()
@@ -67,9 +58,13 @@ namespace Xwt.Mac
 		{
 			foreach (var nsFace in NSFontManager.SharedFontManager.AvailableMembersOfFontFamily(family)) {
 				var name = NSString.FromHandle(nsFace.ValueAt(1));
-				var weight = ((NSNumber) NSValue.ValueFromPointer (nsFace.ValueAt (2)).NonretainedObjectValue).Int32Value;
-				var traits = (NSFontTraitMask) ((NSNumber)NSValue.ValueFromPointer (nsFace.ValueAt (3)).NonretainedObjectValue).Int32Value;
-				yield return new KeyValuePair<string, object>(name, FontData.FromFamily(family, traits, weight, 0));
+				using (var weightValue = (NSNumber)NSValue.ValueFromPointer(nsFace.ValueAt(2)).NonretainedObjectValue)
+				using (var traitsValue = (NSNumber)NSValue.ValueFromPointer(nsFace.ValueAt(3)).NonretainedObjectValue)
+				{
+					var weight = weightValue.Int32Value;
+					var traits = (NSFontTraitMask)traitsValue.Int32Value;
+					yield return new KeyValuePair<string, object>(name, FontData.FromFamily(family, traits, weight, 0));
+				}
 			}
 			yield break;
 		}
@@ -77,7 +72,15 @@ namespace Xwt.Mac
 		public override object Create (string fontName, double size, FontStyle style, FontWeight weight, FontStretch stretch)
 		{
 			var t = GetStretchTrait (stretch) | GetStyleTrait (style);
-			var f = NSFontManager.SharedFontManager.FontWithFamily (fontName, t, GetWeightValue (weight), (float)size);
+
+			var names = fontName.Split (new char[] {','}, StringSplitOptions.RemoveEmptyEntries);
+			NSFont f = null;
+			foreach (var name in names) {
+				f = NSFontManager.SharedFontManager.FontWithFamily (name.Trim (), t, weight.ToMacValue (), (float)size);
+				if (f != null) break;
+			}
+			if (f == null) return null;
+
 			var fd = FontData.FromFont (NSFontManager.SharedFontManager.ConvertFont (f, t));
 			fd.Style = style;
 			fd.Weight = weight;
@@ -111,7 +114,17 @@ namespace Xwt.Mac
 		{
 			FontData f = (FontData) handle;
 			f = f.Copy ();
-			f.Font = NSFontManager.SharedFontManager.ConvertFontToFamily (f.Font, family);
+
+			var names = family.Split (new char[] {','}, StringSplitOptions.RemoveEmptyEntries);
+			NSFont font = null;
+			foreach (var name in names) {
+				font = NSFontManager.SharedFontManager.ConvertFontToFamily (f.Font, name.Trim ());
+				if (font != null) {
+					f.Font = font;
+					break;
+				}
+			}
+
 			return f;
 		}
 
@@ -129,59 +142,30 @@ namespace Xwt.Mac
 			return f;
 		}
 
-		static int GetWeightValue (FontWeight weight)
-		{
-			switch (weight) {
-			case FontWeight.Thin:
-				return 1;
-			case FontWeight.Ultralight:
-				return 2;
-			case FontWeight.Light:
-				return 3;
-			case FontWeight.Book:
-				return 4;
-			case FontWeight.Normal:
-				return 5;
-			case FontWeight.Medium:
-				return 6;
-			case FontWeight.Semibold:
-				return 8;
-			case FontWeight.Bold:
-				return 9;
-			case FontWeight.Ultrabold:
-				return 10;
-			case FontWeight.Heavy:
-				return 11;
-			case FontWeight.Ultraheavy:
-				return 12;
-			default:
-				return 13;
-			}
-		}
+		static FontWeight [] weightLookupTable = {
+			FontWeight.Ultrathin, // 0
+			FontWeight.Thin,
+			FontWeight.Ultralight,
+			FontWeight.Light,
+			FontWeight.Book,
+			FontWeight.Normal, // 5
+			FontWeight.Medium,
+			FontWeight.Mediumbold,
+			FontWeight.Semibold,
+			FontWeight.Bold, // 9
+			FontWeight.Ultrabold,
+			FontWeight.Heavy,
+			FontWeight.Ultraheavy,
+			FontWeight.Semiblack,
+			FontWeight.Black,
+			FontWeight.Ultrablack // 15
+		};
 
-		internal static FontWeight GetWeightFromValue (nint w)
+		internal static FontWeight GetWeightFromValue (nint weightValue)
 		{
-			if (w <= 1)
-				return FontWeight.Thin;
-			if (w == 2)
-				return FontWeight.Ultralight;
-			if (w == 3)
-				return FontWeight.Light;
-			if (w == 4)
-				return FontWeight.Book;
-			if (w == 5)
-				return FontWeight.Normal;
-			if (w == 6)
-				return FontWeight.Medium;
-			if (w <= 8)
-				return FontWeight.Semibold;
-			if (w == 9)
-				return FontWeight.Bold;
-			if (w == 10)
-				return FontWeight.Ultrabold;
-			if (w == 11)
-				return FontWeight.Heavy;
-			return FontWeight.Ultraheavy;
+			if (weightValue < 0 || weightValue >= weightLookupTable.Length)
+				throw new ArgumentOutOfRangeException (nameof (weightValue), "needs to be from 0-" + weightLookupTable.Length + " was:" + weightValue);
+			return weightLookupTable [weightValue];
 		}
 
 		NSFontTraitMask GetStretchTrait (FontStretch stretch)
@@ -213,11 +197,7 @@ namespace Xwt.Mac
 		{
 			FontData f = (FontData) handle;
 			f = f.Copy ();
-			int w = GetWeightValue (weight);
-			var traits = NSFontManager.SharedFontManager.TraitsOfFont (f.Font);
-			traits |= weight >= FontWeight.Bold ? NSFontTraitMask.Bold : NSFontTraitMask.Unbold;
-			traits &= weight >= FontWeight.Bold ? ~NSFontTraitMask.Unbold : ~NSFontTraitMask.Bold;
-			f.Font = NSFontManager.SharedFontManager.FontWithFamily (f.Font.FamilyName, traits, w, f.Font.PointSize);
+			f.Font = f.Font.WithWeight (weight);
 			f.Weight = weight;
 			return f;
 		}
@@ -345,11 +325,11 @@ namespace Xwt.Mac
 		{
 			StringBuilder sb = new StringBuilder (Font.FamilyName);
 			if (Style != FontStyle.Normal)
-				sb.Append (' ').Append (Style);
+				sb.Append (' ').Append (Style.ToString ());
 			if (Weight != FontWeight.Normal)
-				sb.Append (' ').Append (Weight);
+				sb.Append (' ').Append (Weight.ToString ());
 			if (Stretch != FontStretch.Normal)
-				sb.Append (' ').Append (Stretch);
+				sb.Append (' ').Append (Stretch.ToString ());
 			sb.Append (' ').Append (Font.PointSize.ToString (CultureInfo.InvariantCulture));
 			return sb.ToString ();
 		}

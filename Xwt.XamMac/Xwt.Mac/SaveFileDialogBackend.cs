@@ -23,96 +23,26 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using System;
-using Xwt.Backends;
 
-#if MONOMAC
-using nint = System.Int32;
-using nfloat = System.Single;
-using MonoMac.AppKit;
-using MonoMac.Foundation;
-#else
+using System.Collections.Generic;
 using AppKit;
 using Foundation;
-#endif
+using Xwt.Backends;
 
 namespace Xwt.Mac
 {
-	public class SaveFileDialogBackend : NSSavePanel, ISaveFileDialogBackend
+	public class SaveFileDialogBackend : FileDialogBackend, ISaveFileDialogBackend
 	{
-		public SaveFileDialogBackend ()
+		protected override NSSavePanel GetFilePanel ()
 		{
+			return NSSavePanel.SavePanel;
 		}
 
-		#region IFileDialogBackend implementation
-		public void Initialize (System.Collections.Generic.IEnumerable<FileDialogFilter> filters, bool multiselect, string initialFileName)
+		protected override void OnInitialize (IEnumerable<FileDialogFilter> filters, bool multiselect, string initialFileName)
 		{
-			if (!string.IsNullOrEmpty (initialFileName))
-				this.DirectoryUrl = new NSUrl (initialFileName,true);
+			base.OnInitialize (filters, multiselect, initialFileName);
 
-			this.Prompt = "Select File";
+			Panel.Prompt = Application.TranslationCatalog.GetString ("Select File");
 		}
-
-		public bool Run (IWindowFrameBackend parent)
-		{
-			var returnValue = this.RunModal ();
-			return returnValue == 1;
-		}
-
-		public void Cleanup ()
-		{
-
-		}
-
-		public string FileName {
-			get {
-				return this.Url == null ? string.Empty :  Url.Path;
-			}
-		}
-
-		public string[] FileNames {
-			get {
-				return this.Url == null ? new string[0] : new string [1] { Url.Path };
-			}
-		}
-
-		public string CurrentFolder {
-			get {
-				return DirectoryUrl.AbsoluteString;
-			}
-			set {
-				this.DirectoryUrl = new NSUrl (value,true);
-			}
-		}
-
-		public FileDialogFilter ActiveFilter {
-			get {
-				return null;
-			}
-			set {
-
-			}
-		}
-
-		#endregion
-
-		#region IBackend implementation
-
-		public void InitializeBackend (object frontend, ApplicationContext context)
-		{
-
-		}
-
-		public void EnableEvent (object eventId)
-		{
-
-		}
-
-		public void DisableEvent (object eventId)
-		{
-
-		}
-
-		#endregion
 	}
 }

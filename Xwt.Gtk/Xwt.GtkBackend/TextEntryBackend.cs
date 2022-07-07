@@ -38,7 +38,7 @@ namespace Xwt.GtkBackend
 			Widget.Show ();
 		}
 
-		protected virtual Gtk.Entry TextEntry {
+		internal protected virtual Gtk.Entry TextEntry {
 			get { return (Gtk.Entry)base.Widget; }
 		}
 		
@@ -80,7 +80,7 @@ namespace Xwt.GtkBackend
 			}
 			set {
 				base.BackgroundColor = value;
-				Widget.ModifyBase (Gtk.StateType.Normal, value.ToGtkValue ());
+				Widget.ModifyBg (Gtk.StateType.Normal, value.ToGtkValue ());
 			}
 		}
 
@@ -93,7 +93,7 @@ namespace Xwt.GtkBackend
 			}
 		}
 		
-		public bool ShowFrame {
+		public virtual bool ShowFrame {
 			get {
 				return Widget.HasFrame;
 			}
@@ -175,6 +175,12 @@ namespace Xwt.GtkBackend
 			get; set;
 		}
 
+		public bool HasCompletions {
+			get {
+				return Widget?.Completion?.Model != null;
+			}
+		}
+
 		/// <summary>
 		/// Set the list of completions that will be shown by the entry
 		/// </summary>
@@ -215,7 +221,7 @@ namespace Xwt.GtkBackend
 			};
 		}
 
-		Gtk.EntryCompletion CreateCompletion ()
+		internal static Gtk.EntryCompletion CreateCompletion ()
 		{
 			return new Gtk.EntryCompletion () {
 				PopupCompletion = true,
@@ -271,18 +277,14 @@ namespace Xwt.GtkBackend
 
 		void HandleActivated (object sender, EventArgs e)
 		{
-			ApplicationContext.InvokeUserCode (delegate {
-				EventSink.OnActivated ();
-			});
+			ApplicationContext.InvokeUserCode (EventSink.OnActivated);
 		}
 
 		bool enableSelectionChangedEvent;
 		void HandleSelectionChanged ()
 		{
 			if (enableSelectionChangedEvent)
-				ApplicationContext.InvokeUserCode (delegate {
-					EventSink.OnSelectionChanged ();
-				});
+				ApplicationContext.InvokeUserCode (EventSink.OnSelectionChanged);
 		}
 
 		void HandleMoveCursor (object sender, EventArgs e)

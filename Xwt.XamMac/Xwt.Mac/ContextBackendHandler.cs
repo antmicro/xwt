@@ -26,24 +26,11 @@
 // THE SOFTWARE.
 
 using System;
-using Xwt.Backends;
-
-using Xwt.Drawing;
-using System.Drawing;
 using System.Collections.Generic;
-
-#if MONOMAC
-using nint = System.Int32;
-using nfloat = System.Single;
-using CGRect = System.Drawing.RectangleF;
-using CGPoint = System.Drawing.PointF;
-using CGSize = System.Drawing.SizeF;
-using MonoMac.CoreGraphics;
-using MonoMac.AppKit;
-#else
-using CoreGraphics;
 using AppKit;
-#endif
+using CoreGraphics;
+using Xwt.Backends;
+using Xwt.Drawing;
 
 namespace Xwt.Mac
 {
@@ -51,14 +38,17 @@ namespace Xwt.Mac
 		public CGContext Context;
 		public CGSize Size;
 		public CGAffineTransform? InverseViewTransform;
-		public Stack<ContextStatus> StatusStack = new Stack<ContextStatus> ();
 		public ContextStatus CurrentStatus = new ContextStatus ();
 		public double ScaleFactor = 1;
+		public StyleSet Styles;
 	}
 
 	class ContextStatus
 	{
 		public object Pattern;
+		public double GlobalAlpha = 1;
+		public CGColor GlobalColor = null;
+		public ContextStatus Previous;
 	}
 
 	public class MacContextBackendHandler: ContextBackendHandler
@@ -75,22 +65,33 @@ namespace Xwt.Mac
 		{
 			var ct = (CGContextBackend) backend;
 			ct.Context.SaveState ();
-			ct.StatusStack.Push (ct.CurrentStatus);
-			var newStatus = new ContextStatus ();
-			newStatus.Pattern = ct.CurrentStatus.Pattern;
-			ct.CurrentStatus = newStatus;
+			ct.CurrentStatus = new ContextStatus {
+				Pattern = ct.CurrentStatus.Pattern,
+				GlobalAlpha = ct.CurrentStatus.GlobalAlpha,
+				GlobalColor = ct.CurrentStatus.GlobalColor,
+				Previous = ct.CurrentStatus,
+			};
 		}
-		
+
 		public override void Restore (object backend)
 		{
 			var ct = (CGContextBackend) backend;
 			ct.Context.RestoreState ();
-			ct.CurrentStatus = ct.StatusStack.Pop ();
+			if (ct.CurrentStatus.Previous != null) {
+				ct.CurrentStatus = ct.CurrentStatus.Previous;
+			}
 		}
 
 		public override void SetGlobalAlpha (object backend, double alpha)
 		{
-			((CGContextBackend)backend).Context.SetAlpha ((float)alpha);
+			var ct = (CGContextBackend) backend;
+			ct.CurrentStatus.GlobalAlpha = alpha;
+			ct.Context.SetAlpha ((float)alpha);
+		}
+
+		public override void SetStyles (object backend, StyleSet styles)
+		{
+			((CGContextBackend)backend).Styles = styles;
 		}
 
 		public override void Arc (object backend, double xc, double yc, double radius, double angle1, double angle2)
@@ -218,6 +219,8 @@ namespace Xwt.Mac
 		{
 			CGContextBackend gc = (CGContextBackend)backend;
 			gc.CurrentStatus.Pattern = null;
+			// Store the current color for TextLayout using NSLayoutManager
+			gc.CurrentStatus.GlobalColor = color.ToCGColor ();
 			CGContext ctx = gc.Context;
 			ctx.SetFillColorSpace (Util.DeviceRGBColorSpace);
 			ctx.SetStrokeColorSpace (Util.DeviceRGBColorSpace);
@@ -272,12 +275,15 @@ namespace Xwt.Mac
 					                         CGPatternTiling.ConstantSpacing, true, c => c.DrawImage (bounds, cgimg));
 				}
 
-				CGContext ctx = gc.Context;
-				var alpha = new[] { (nfloat)pi.Alpha };
-				ctx.SetFillColorSpace (Util.PatternColorSpace);
-				ctx.SetStrokeColorSpace (Util.PatternColorSpace);
-				ctx.SetFillPattern (pattern, alpha);
-				ctx.SetStrokePattern (pattern, alpha);
+				using (pattern)
+				{
+					CGContext ctx = gc.Context;
+					var alpha = new[] { (nfloat)pi.Alpha };
+					ctx.SetFillColorSpace(Util.PatternColorSpace);
+					ctx.SetStrokeColorSpace(Util.PatternColorSpace);
+					ctx.SetFillPattern(pattern, alpha);
+					ctx.SetStrokePattern(pattern, alpha);
+				}
 			}
 		}
 		
@@ -286,7 +292,7 @@ namespace Xwt.Mac
 			CGContext ctx = ((CGContextBackend)backend).Context;
 			SetupContextForDrawing (ctx);
 			var li = ApplicationContext.Toolkit.GetSafeBackend (layout);
-			MacTextLayoutBackendHandler.Draw (ctx, li, x, y);
+			MacTextLayoutBackendHandler.Draw ((CGContextBackend)backend, li, x, y);
 		}
 
 		public override void DrawImage (object backend, ImageDescription img, double x, double y)
@@ -298,8 +304,13 @@ namespace Xwt.Mac
 
 		public override void DrawImage (object backend, ImageDescription img, Rectangle srcRect, Rectangle destRect)
 		{
-			CGContext ctx = ((CGContextBackend)backend).Context;
-			NSImage image = img.ToNSImage ();
+			var cb = (CGContextBackend)backend;
+			CGContext ctx = cb.Context;
+
+			// Add the styles that have been globaly set to the context
+			img.Styles = img.Styles.AddRange (cb.Styles);
+			img.Alpha *= cb.CurrentStatus.GlobalAlpha;
+
 			ctx.SaveState ();
 			ctx.SetAlpha ((float)img.Alpha);
 
@@ -310,12 +321,14 @@ namespace Xwt.Mac
 			ctx.TranslateCTM ((float)(destRect.X - (srcRect.X * rx)), (float)(destRect.Y - (srcRect.Y * ry)));
 			ctx.ScaleCTM ((float)rx, (float)ry);
 
+			NSImage image = (NSImage)img.Backend;
 			if (image is CustomImage) {
-				((CustomImage)image).DrawInContext ((CGContextBackend)backend);
+				((CustomImage)image).DrawInContext ((CGContextBackend)backend, img);
 			} else {
-				var rr = new CGRect (0, 0, image.Size.Width, image.Size.Height);
+				var size = new CGSize ((nfloat)img.Size.Width, (nfloat)img.Size.Height);
+				var rr = new CGRect (0, 0, size.Width, size.Height);
 				ctx.ScaleCTM (1f, -1f);
-				ctx.DrawImage (new CGRect (0, -image.Size.Height, image.Size.Width, image.Size.Height), image.AsCGImage (ref rr, NSGraphicsContext.CurrentContext, null));
+				ctx.DrawImage (new CGRect (0, -size.Height, size.Width, size.Height), image.AsCGImage (ref rr, NSGraphicsContext.CurrentContext, null));
 			}
 
 			ctx.RestoreState ();

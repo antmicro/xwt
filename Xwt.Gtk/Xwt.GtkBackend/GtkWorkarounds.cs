@@ -554,11 +554,11 @@ namespace Xwt.GtkBackend
 		
 		//introduced in GTK 2.20
 		[DllImport (GtkInterop.LIBGDK, CallingConvention = CallingConvention.Cdecl)]
-		extern static bool gdk_keymap_add_virtual_modifiers (IntPtr keymap, ref Gdk.ModifierType state);
+		extern static void gdk_keymap_add_virtual_modifiers (IntPtr keymap, ref Gdk.ModifierType state);
 		
 		//Custom patch in Mono Mac w/GTK+ 2.24.8+
 		[DllImport (GtkInterop.LIBGDK, CallingConvention = CallingConvention.Cdecl)]
-		extern static bool gdk_quartz_set_fix_modifiers (bool fix);
+		extern static void gdk_quartz_set_fix_modifiers (bool fix);
 		
 		static Gdk.Keymap keymap = Gdk.Keymap.Default;
 		static Dictionary<ulong,MappedKeys> mappedKeys = new Dictionary<ulong,MappedKeys> ();
@@ -878,6 +878,7 @@ namespace Xwt.GtkBackend
 				return;
 			}
 
+		#if !NET
 			//need to fix the callback for the type and all the managed supertypes
 			var lookupGType = typeof (GLib.Object).GetMethod ("LookupGType", BindingFlags.Static | BindingFlags.NonPublic);
 			do {
@@ -887,8 +888,10 @@ namespace Xwt.GtkBackend
 				gtksharp_container_override_forall (gt.Val, cb);
 				t = t.BaseType;
 			} while (fixedContainerTypes.Add (t) && t.Assembly != typeof (Gtk.Container).Assembly);
+		#endif
 		}
-
+		
+	#if !NET
 		static ForallDelegate CreateForallCallback (IntPtr gtype)
 		{
 			var dm = new DynamicMethod (
@@ -983,6 +986,7 @@ namespace Xwt.GtkBackend
 			
 			return (ForallDelegate) dm.CreateDelegate (typeof (ForallDelegate));
 		}
+	#endif
 		
 		[UnmanagedFunctionPointer (CallingConvention.Cdecl)]
 		delegate void ForallDelegate (IntPtr container, bool include_internals, IntPtr cb, IntPtr data);
@@ -1294,6 +1298,182 @@ namespace Xwt.GtkBackend
 			var bindingSet = gtk_binding_set_find (gtype.ToString ());
 			if (bindingSet != IntPtr.Zero)
 				gtk_binding_entry_remove (bindingSet, (uint)key, modifiers);
+		}
+
+		public static IntPtr GetData (GLib.Object o, string name)
+		{
+			return g_object_get_data (o.Handle, name);
+		}
+
+		[DllImport (GtkInterop.LIBGTK, CallingConvention = CallingConvention.Cdecl)]
+		static extern void gtk_object_set_data (IntPtr raw, IntPtr key, IntPtr data);
+
+		public static void SetData<T> (GLib.Object gtkobject, string key, T data) where T : struct
+		{
+			IntPtr pkey = GLib.Marshaller.StringToPtrGStrdup (key);
+			IntPtr pdata = Marshal.AllocHGlobal (Marshal.SizeOf (data));
+			Marshal.StructureToPtr (data, pdata, false);
+			gtk_object_set_data (gtkobject.Handle, pkey, pdata);
+			Marshal.FreeHGlobal (pdata);
+			GLib.Marshaller.Free (pkey);
+			gtkobject.Data [key] = data;
+		}
+
+		public static void SetTransparentBgHint (this Gtk.Widget widget, bool enable)
+		{
+			SetData (widget, "transparent-bg-hint", enable);
+		}
+
+		[DllImport (GtkInterop.LIBGTK)]
+		static extern IntPtr gdk_x11_drawable_get_xid (IntPtr window);
+
+		public static IntPtr GetGtkWindowNativeHandle (Gtk.Window window)
+		{
+			if (window?.GdkWindow == null)
+				return IntPtr.Zero;
+			if (Platform.IsMac)
+				return gdk_quartz_window_get_nswindow (window.GdkWindow.Handle);
+			if (Platform.IsWindows)
+				return gdk_win32_drawable_get_handle (window.GdkWindow.Handle);
+			return gdk_x11_drawable_get_xid (window.GdkWindow.Handle);
+		}
+
+		[DllImport(GtkInterop.LIBGTK, CallingConvention = CallingConvention.Cdecl)]
+		private static extern bool gtk_selection_data_set_uris(IntPtr raw, IntPtr[] uris);
+
+		[DllImport(GtkInterop.LIBGTK, CallingConvention = CallingConvention.Cdecl)]
+		private static extern IntPtr gtk_selection_data_get_uris(IntPtr raw);
+
+		public static bool SetUris(this Gtk.SelectionData data, string[] uris)
+		{
+			return gtk_selection_data_set_uris(data.Handle, GLib.Marshaller.StringArrayToNullTermPointer(uris));
+		}
+
+		public static string[] GetUris(this Gtk.SelectionData data)
+		{
+			var strPtr = gtk_selection_data_get_uris (data.Handle);
+			return GLib.Marshaller.PtrToStringArrayGFree (strPtr);
+		}
+
+		public static bool GetTagForAttributes (this Pango.AttrIterator iter, string name, out Gtk.TextTag tag)
+		{
+			tag = new Gtk.TextTag (name);
+			bool result = false;
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Family)) {
+				if (attr != null) {
+					tag.Family = ((Pango.AttrFamily)attr).Family;
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Style)) {
+				if (attr != null) {
+					tag.Style = ((Pango.AttrStyle)attr).Style;
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Weight)) {
+				if (attr != null) {
+					tag.Weight = ((Pango.AttrWeight)attr).Weight;
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Variant)) {
+				if (attr != null) {
+					tag.Variant = ((Pango.AttrVariant)attr).Variant;
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Stretch)) {
+				if (attr != null) {
+					tag.Stretch = ((Pango.AttrStretch)attr).Stretch;
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.FontDesc)) {
+				if (attr != null) {
+					tag.FontDesc = ((Pango.AttrFontDesc)attr).Desc;
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Foreground)) {
+				if (attr != null) {
+					#if XWT_GTK3
+					tag.Foreground = ((Pango.AttrForeground)attr).Color.ToString();
+					#else
+					tag.Foreground = ((Gdk.PangoAttrEmbossColor)attr).Color.ToString ();
+					#endif
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Background)) {
+				if (attr != null) {
+				#if XWT_GTK3
+					tag.Foreground = ((Pango.AttrBackground)attr).Color.ToString();
+					#else
+					tag.Background = ((Gdk.PangoAttrEmbossColor)attr).Color.ToString ();
+					#endif
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Underline)) {
+				if (attr != null) {
+					tag.Underline = ((Pango.AttrUnderline)attr).Underline;
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Strikethrough)) {
+				if (attr != null) {
+					tag.Strikethrough = ((Pango.AttrStrikethrough)attr).Strikethrough;
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Rise)) {
+				if (attr != null) {
+					tag.Rise = ((Pango.AttrRise)attr).Rise;
+					result = true;
+				}
+			}
+
+			using (var attr = iter.SafeGetCopy (Pango.AttrType.Scale)) {
+				if (attr != null) {
+					tag.Scale = ((Pango.AttrScale)attr).Scale;
+					result = true;
+				}
+			}
+
+			return result;
+		}
+
+		[DllImport (GtkInterop.LIBPANGO, CallingConvention = CallingConvention.Cdecl)]
+		private static extern IntPtr pango_attribute_copy (IntPtr raw);
+
+		[DllImport (GtkInterop.LIBPANGO, CallingConvention = CallingConvention.Cdecl)]
+		private static extern IntPtr pango_attr_iterator_get (IntPtr raw, int type);
+
+		public static Pango.Attribute SafeGetCopy (this Pango.AttrIterator iter, Pango.AttrType type)
+		{
+			try {
+				IntPtr raw = pango_attr_iterator_get (iter.Handle, (int)type);
+				if (raw != IntPtr.Zero) {
+					var copy = pango_attribute_copy (raw);
+					var attr = Pango.Attribute.GetAttribute (copy);
+					return attr;
+				} else
+					return null;
+			} catch {
+				return null;
+			}
 		}
 	}
 	

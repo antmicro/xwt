@@ -29,27 +29,17 @@
 // THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using Xwt.Backends;
-using System.Drawing;
-
-#if MONOMAC
-using nint = System.Int32;
-using nfloat = System.Single;
-using MonoMac.Foundation;
-using MonoMac.AppKit;
-using MonoMac.ObjCRuntime;
-using CGRect = System.Drawing.RectangleF;
-#else
-using Foundation;
+using System.Linq;
 using AppKit;
-using ObjCRuntime;
 using CoreGraphics;
-#endif
+using Foundation;
+using ObjCRuntime;
+using Xwt.Backends;
+using Xwt.Drawing;
 
 namespace Xwt.Mac
 {
-	public class WindowBackend: NSWindow, IWindowBackend
+	public class WindowBackend: NSWindow, IWindowBackend, IMacWindowBackend, INSWindowDelegate
 	{
 		WindowBackendController controller;
 		IWindowFrameEventSink eventSink;
@@ -57,7 +47,8 @@ namespace Xwt.Mac
 		ViewBackend child;
 		NSView childView;
 		bool sensitive = true;
-		
+		WindowFrameEvent eventsEnabled;
+
 		public WindowBackend (IntPtr ptr): base (ptr)
 		{
 		}
@@ -75,11 +66,17 @@ namespace Xwt.Mac
 			// TODO: do it only if mouse move events are enabled in a widget
 			AcceptsMouseMovedEvents = true;
 
-			WillClose += delegate {
-				OnClosed ();
-			};
-
 			Center ();
+
+			WeakDelegate = this;
+		}
+
+		object IWindowFrameBackend.Window {
+			get { return this; }
+		}
+
+		public IntPtr NativeHandle {
+			get { return Handle; }
 		}
 
 		public IWindowFrameEventSink EventSink {
@@ -107,31 +104,67 @@ namespace Xwt.Mac
 				return this;
 			}
 		}
-		
+
+		public string Name { get; set; }
+
+		void IMacWindowBackend.InternalShow ()
+		{
+			InternalShow ();
+		}
+
 		internal void InternalShow ()
 		{
 			MakeKeyAndOrderFront (MacEngine.App);
+			if (ParentWindow != null)
+			{
+				if (!ParentWindow.ChildWindows.Contains(this))
+					ParentWindow.AddChildWindow(this, NSWindowOrderingMode.Above);
+
+				// always use NSWindow for alignment when running in guest mode and
+				// don't rely on AddChildWindow to position the window correctly
+				if (frontend.InitialLocation == WindowLocation.CenterParent && !(ParentWindow is WindowBackend))
+				{
+					var parentBounds = MacDesktopBackend.ToDesktopRect(ParentWindow.ContentRectFor(ParentWindow.Frame));
+					var bounds = ((IWindowFrameBackend)this).Bounds;
+					bounds.X = parentBounds.Center.X - (Frame.Width / 2);
+					bounds.Y = parentBounds.Center.Y - (Frame.Height / 2);
+					((IWindowFrameBackend)this).Bounds = bounds;
+				}
+				if (AccessibilityFocusedWindow == ParentWindow) {
+					AccessibilityFocusedWindow = this;
+				}
+			}
 		}
 		
 		public void Present ()
 		{
-			MakeKeyAndOrderFront (MacEngine.App);
+			InternalShow();
 		}
 
 		public bool Visible {
 			get {
-				return !ContentView.Hidden;
+				return IsVisible;
 			}
 			set {
 				if (value)
-					MacEngine.App.ShowWindow (this);
-				ContentView.Hidden = !value;
+					MacEngine.App.ShowWindow(this);
+				ContentView.Hidden = !value; // handle shown/hidden events
+				IsVisible = value;
 			}
 		}
 
 		public double Opacity {
 			get { return AlphaValue; }
 			set { AlphaValue = (float)value; }
+		}
+
+		Color IWindowBackend.BackgroundColor {
+			get {
+				return BackgroundColor.ToXwtColor ();
+			}
+			set {
+				BackgroundColor = value.ToNSColor ();
+			}
 		}
 
 		public bool Sensitive {
@@ -180,35 +213,41 @@ namespace Xwt.Mac
 			if (eventId is WindowFrameEvent) {
 				var @event = (WindowFrameEvent)eventId;
 				switch (@event) {
-				case WindowFrameEvent.BoundsChanged:
-					DidResize += HandleDidResize;
-#if MONOMAC
-					DidMoved += HandleDidResize;
-#else
-					DidMove += HandleDidResize;
-#endif
-					break;
-				case WindowFrameEvent.Hidden:
-					EnableVisibilityEvent (@event);
-					this.WillClose += OnWillClose;
-					break;
-				case WindowFrameEvent.Shown:
-					EnableVisibilityEvent (@event);
-					break;
-				case WindowFrameEvent.CloseRequested:
-					WindowShouldClose = OnShouldClose;
-					break;
+					case WindowFrameEvent.Hidden:
+					case WindowFrameEvent.Shown:
+						if (!VisibilityEventsEnabled())
+						{
+							ContentView.AddObserver(this, HiddenProperty, NSKeyValueObservingOptions.New, IntPtr.Zero);
+						}
+						break;
 				}
+				eventsEnabled |= @event;
 			}
 		}
-		
-		void OnWillClose (object sender, EventArgs args) {
-			OnHidden ();
+
+		[Export ("windowDidResize:")]
+		new void DidResize (NSNotification notification)
+		{
+			OnBoundsChanged();
 		}
 
-		bool OnShouldClose (NSObject ob)
+		[Export ("windowDidMove:")]
+		new void DidMove (NSNotification notification)
+		{
+			OnBoundsChanged ();
+		}
+
+		[Export("windowShouldClose:")]
+		new bool WindowShouldClose (NSObject sender)
 		{
 			return closePerformed = RequestClose ();
+		}
+
+		[Export ("windowWillClose:")]
+		new void WillClose (NSNotification notification)
+		{
+			OnHidden ();
+			OnClosed ();
 		}
 
 		internal bool RequestClose ()
@@ -229,66 +268,48 @@ namespace Xwt.Mac
 		bool IWindowFrameBackend.Close ()
 		{
 			closePerformed = true;
-			PerformClose (this);
+			if ((StyleMask & NSWindowStyle.Titled) != 0 && (StyleMask & NSWindowStyle.Closable) != 0)
+				PerformClose(this);
+			else
+				Close ();
+			if (ParentWindow != null)
+				ParentWindow.RemoveChildWindow(this);
 			return closePerformed;
 		}
 		
 		bool VisibilityEventsEnabled ()
 		{
-			return eventsEnabled != WindowFrameEvent.BoundsChanged;
+			return eventsEnabled.HasFlag(WindowFrameEvent.Hidden) || eventsEnabled.HasFlag(WindowFrameEvent.Shown);
 		}
-		WindowFrameEvent eventsEnabled = WindowFrameEvent.BoundsChanged;
 
 		NSString HiddenProperty {
 			get { return new NSString ("hidden"); }
 		}
-		
-		void EnableVisibilityEvent (WindowFrameEvent ev)
-		{
-			if (!VisibilityEventsEnabled ()) {
-				ContentView.AddObserver (this, HiddenProperty, NSKeyValueObservingOptions.New, IntPtr.Zero);
-			}
-			if (!eventsEnabled.HasFlag (ev)) {
-				eventsEnabled |= ev;
-			}
-		}
 
 		public override void ObserveValue (NSString keyPath, NSObject ofObject, NSDictionary change, IntPtr context)
 		{
-			if (keyPath.ToString () == HiddenProperty.ToString () && ofObject.Equals (ContentView)) {
+			if (keyPath.IsEqual (HiddenProperty) && ofObject.Equals (ContentView)) {
 				if (ContentView.Hidden) {
-					if (eventsEnabled.HasFlag (WindowFrameEvent.Hidden)) {
-						OnHidden ();
-					}
+					OnHidden ();
 				} else {
-					if (eventsEnabled.HasFlag (WindowFrameEvent.Shown)) {
-						OnShown ();
-					}
+					OnShown ();
 				}
 			}
 		}
 
-		void OnHidden () {
-			ApplicationContext.InvokeUserCode (delegate ()
-			{
-				eventSink.OnHidden ();
-			});
-		}
-
-		void OnShown () {
-			ApplicationContext.InvokeUserCode (delegate ()
-			{
-				eventSink.OnShown ();
-			});
-		}
-
-		void DisableVisibilityEvent (WindowFrameEvent ev)
+		void OnHidden ()
 		{
-			if (eventsEnabled.HasFlag (ev)) {
-				eventsEnabled ^= ev;
-				if (!VisibilityEventsEnabled ()) {
-					ContentView.RemoveObserver (this, HiddenProperty);
-				}
+			if (eventsEnabled.HasFlag (WindowFrameEvent.Hidden))
+			{
+				ApplicationContext.InvokeUserCode (eventSink.OnHidden);
+			}
+		}
+
+		void OnShown ()
+		{
+			if (eventsEnabled.HasFlag (WindowFrameEvent.Shown))
+			{
+				ApplicationContext.InvokeUserCode (eventSink.OnShown);
 			}
 		}
 
@@ -296,37 +317,29 @@ namespace Xwt.Mac
 		{
 			if (eventId is WindowFrameEvent) {
 				var @event = (WindowFrameEvent)eventId;
+				eventsEnabled &= ~@event;
 				switch (@event) {
-					case WindowFrameEvent.BoundsChanged:
-						DidResize -= HandleDidResize;
-#if MONOMAC
-					DidMoved -= HandleDidResize;
-#else
-					DidMove -= HandleDidResize;
-#endif
-						break;
 					case WindowFrameEvent.Hidden:
-						this.WillClose -= OnWillClose;
-						DisableVisibilityEvent (@event);
-						break;
 					case WindowFrameEvent.Shown:
-						DisableVisibilityEvent (@event);
+						if (!VisibilityEventsEnabled())
+						{
+							ContentView.RemoveObserver(this, HiddenProperty);
+						}
 						break;
 				}
 			}
 		}
 
-		void HandleDidResize (object sender, EventArgs e)
-		{
-			OnBoundsChanged ();
-		}
-
 		protected virtual void OnBoundsChanged ()
 		{
 			LayoutWindow ();
-			ApplicationContext.InvokeUserCode (delegate {
-				eventSink.OnBoundsChanged (((IWindowBackend)this).Bounds);
-			});
+			if (eventsEnabled.HasFlag(WindowFrameEvent.BoundsChanged))
+			{
+				ApplicationContext.InvokeUserCode(delegate
+				{
+					eventSink.OnBoundsChanged(((IWindowBackend)this).Bounds);
+				});
+			}
 		}
 
 		void IWindowBackend.SetChild (IWidgetBackend child)
@@ -374,8 +387,21 @@ namespace Xwt.Mac
 
 		void IWindowFrameBackend.SetTransientFor (IWindowFrameBackend window)
 		{
-			// Generally, TransientFor is used to implement dialog, we reproduce the assumption here
-			Level = window == null ? NSWindowLevel.Normal : NSWindowLevel.ModalPanel;
+			if (!((IWindowFrameBackend)this).ShowInTaskbar)
+				StyleMask &= ~NSWindowStyle.Miniaturizable;
+
+			var win = window as NSWindow ?? ApplicationContext.Toolkit.GetNativeWindow(window) as NSWindow;
+
+			if (ParentWindow != win) {
+				// remove from the previous parent
+				if (ParentWindow != null)
+					ParentWindow.RemoveChildWindow(this);
+
+				ParentWindow = win;
+				// A window must be visible to be added to a parent. See InternalShow().
+				if (Visible)
+					ParentWindow.AddChildWindow(this, NSWindowOrderingMode.Above);
+			}
 		}
 
 		bool IWindowFrameBackend.Resizable {
@@ -409,6 +435,13 @@ namespace Xwt.Mac
 			if (height == -1)
 				height = cr.Height;
 			var r = FrameRectFor (new CGRect ((nfloat)cr.X, (nfloat)cr.Y, (nfloat)width, (nfloat)height));
+
+			// preserve window location, FrameRectFor will not adjust the left-bottom corner automatically
+			var oldFrame = Frame;
+			if (!oldFrame.IsEmpty) {
+				r.Y = (oldFrame.Y + oldFrame.Height) - r.Height;
+			}
+
 			SetFrame (r, true);
 			LayoutWindow ();
 		}
@@ -439,16 +472,46 @@ namespace Xwt.Mac
 
 		static Selector closeSel = new Selector ("close");
 
-		bool disposing;
+		static readonly bool XamMacDangerousDispose = Version.Parse(Constants.Version) < new Version(5, 6);
 
-		void IWindowFrameBackend.Dispose ()
+		bool disposing, disposed;
+
+		protected override void Dispose(bool disposing)
 		{
-			disposing = true;
-			try {
-				Messaging.void_objc_msgSend (this.Handle, closeSel.Handle);
-			} finally {
-				disposing = false;
+			if (!disposed && disposing)
+			{
+				this.disposing = true;
+				try
+				{
+					if (VisibilityEventsEnabled() && ContentView != null)
+						ContentView.RemoveObserver(this, HiddenProperty);
+
+					if (XamMacDangerousDispose) {
+						// HACK: Xamarin.Mac/MonoMac limitation: no direct way to release a window manually
+						// A NSWindow instance will be removed from NSApplication.SharedApplication.Windows
+						// only if it is being closed with ReleasedWhenClosed set to true but not on Dispose
+						// and there is no managed way to tell Cocoa to release the window manually (and to
+						// remove it from the active window list).
+						// see also: https://bugzilla.xamarin.com/show_bug.cgi?id=45298
+						// WORKAROUND:
+						// bump native reference count by calling DangerousRetain()
+						// base.Dispose will now unref the window correctly without crashing
+						DangerousRetain();
+					}
+					// tell Cocoa to release the window on Close
+					ReleasedWhenClosed = true;
+					// Close the window (Cocoa will do its job even if the window is already closed)
+					Messaging.void_objc_msgSend (this.Handle, closeSel.Handle);
+				} finally {
+					this.disposing = false;
+					this.disposed = true;
+				}
 			}
+			if (controller != null) {
+				controller.Dispose ();
+				controller = null;
+			}
+			base.Dispose (disposing);
 		}
 		
 		public void DragStart (TransferDataSource data, DragDropAction dragAction, object dragImage, double xhot, double yhot)
@@ -498,10 +561,21 @@ namespace Xwt.Mac
 			if (child != null) {
 				frame.X += (nfloat) frontend.Padding.Left;
 				frame.Width -= (nfloat) (frontend.Padding.HorizontalSpacing);
-				frame.Y += (nfloat) frontend.Padding.Top;
+				frame.Y += (nfloat) (childView.IsFlipped ? frontend.Padding.Bottom : frontend.Padding.Top);
 				frame.Height -= (nfloat) (frontend.Padding.VerticalSpacing);
 				childView.Frame = frame;
 			}
+		}
+
+		public override bool ConformsToProtocol (IntPtr protocol)
+		{
+			// HACK: for some reason on systems with a TouchBar this might be called
+			//       after the window has been closed and released, resulting in
+			//       an ObjectDisposedException followed by a crash
+			if (disposed)
+				return false;
+
+			return base.ConformsToProtocol (protocol);
 		}
 	}
 	

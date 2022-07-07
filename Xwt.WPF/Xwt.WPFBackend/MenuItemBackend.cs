@@ -1,4 +1,4 @@
-﻿// 
+// 
 // MenuItemBackend.cs
 //  
 // Author:
@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using SWC = System.Windows.Controls;
 using SWMI = System.Windows.Media.Imaging;
 using Xwt.Backends;
@@ -98,6 +99,21 @@ namespace Xwt.WPFBackend
 			}
 		}
 
+		public string TooltipText
+		{
+			get { return menuItem.ToolTip == null ? null : ((ToolTip)menuItem.ToolTip).Content.ToString(); }
+			set
+			{
+				var tp = menuItem.ToolTip as ToolTip;
+				if (tp == null)
+					menuItem.ToolTip = tp = new ToolTip();
+				tp.Content = value ?? string.Empty;
+				ToolTipService.SetIsEnabled(menuItem, value != null);
+				if (tp.IsOpen && value == null)
+					tp.IsOpen = false;
+			}
+		}
+
 		public bool UseMnemonic {
 			get { return useMnemonic; }
 			set
@@ -162,6 +178,15 @@ namespace Xwt.WPFBackend
 			this.type = type;
 		}
 
+		internal void SetFont (FontData font)
+		{
+			MenuItem.FontFamily = font.Family;
+			MenuItem.FontSize = font.GetDeviceIndependentPixelSize(MenuItem);
+			MenuItem.FontStyle = font.Style;
+			MenuItem.FontWeight = font.Weight;
+			MenuItem.FontStretch = font.Stretch;
+		}
+
 		public override void EnableEvent (object eventId)
 		{
 			if (menuItem == null)
@@ -193,6 +218,19 @@ namespace Xwt.WPFBackend
 		void MenuItemClickHandler (object sender, EventArgs args)
 		{
 			Context.InvokeUserCode (eventSink.OnClicked);
+		}
+
+		public void SetFormattedText (FormattedText text)
+		{
+			var formattedLabel = new System.Windows.Controls.TextBlock();
+			formattedLabel.ApplyFormattedText(text, null);
+  
+			this.menuItem.Header = formattedLabel;
+		}
+
+		public void Dispose ()
+		{
+			// Nothing to do here.
 		}
 	}
 }

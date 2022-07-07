@@ -101,7 +101,6 @@ namespace Xwt.WPFBackend
 			if (row == this.rows.Count)
 				return AddRow ();
 
-			row--;
 			this.rows.Insert (row, new ValuesContainer (this.columnTypes.Length));
 
 			OnRowInserted (new ListRowEventArgs (row));

@@ -27,9 +27,9 @@ namespace Xwt.WPFBackend
             {
                 if (((ScrollAdjustmentEvent)eventId) == ScrollAdjustmentEvent.ValueChanged)
                 {
-                    Scrollbar.Scroll += Scrollbar_Scroll;
-                    Scrollbar.ValueChanged += Scrollbar_Scroll;
-                }    
+					Scrollbar.Scroll += Scrollbar_Scroll;
+					Scrollbar.ValueChanged += Scrollbar_Scroll;
+				}
             }
         }
 
@@ -40,9 +40,9 @@ namespace Xwt.WPFBackend
             {
                 if (((ScrollAdjustmentEvent)eventId) == ScrollAdjustmentEvent.ValueChanged)
                 {
-                    Scrollbar.Scroll -= Scrollbar_Scroll;
-                    Scrollbar.ValueChanged -= Scrollbar_Scroll;
-                }                    
+					Scrollbar.Scroll -= Scrollbar_Scroll;
+					Scrollbar.ValueChanged -= Scrollbar_Scroll;
+				}
             }
         }
 

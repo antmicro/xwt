@@ -36,6 +36,11 @@ namespace Xwt.Backends
 		void Dispose ();
 
 		/// <summary>
+		/// Gets or sets the name of the window.
+		/// </summary>
+		string Name { get; set; }
+
+		/// <summary>
 		/// Size and position of the window content in screen coordinates
 		/// </summary>
 		Rectangle Bounds { get; set; }
@@ -102,6 +107,22 @@ namespace Xwt.Backends
         /// </summary>
         /// <value>The identifier.</value>
         int Id { get; }
+
+		/// <summary>
+		/// Gets the reference to the native window.
+		/// </summary>
+		/// <value>The native window.</value>
+		object Window { get; }
+
+		/// <summary>
+		/// Gets the system handle of the native Window.
+		/// </summary>
+		/// <value>The native handle.</value>
+		/// <remarks>
+		/// The native handle is the platform specific (Cocoa, X, Win32, etc.) window handle,
+		/// which is not necessarily the handle of the toolkit window.
+		/// </remarks>
+		IntPtr NativeHandle { get; }
 	}
 	
 	public interface IWindowFrameEventSink

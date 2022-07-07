@@ -305,7 +305,18 @@ namespace Xwt
 		public event EventHandler<ListRowEventArgs> RowInserted;
 		public event EventHandler<ListRowEventArgs> RowDeleted;
 		public event EventHandler<ListRowEventArgs> RowChanged;
-        public event EventHandler<ListRowOrderEventArgs> RowsReordered { add {} remove {} }
+        private EventHandler<ListRowOrderEventArgs> rowsReordered;
+        public event EventHandler<ListRowOrderEventArgs> RowsReordered
+        {
+        	add
+        	{
+        		rowsReordered += value;
+        	}
+        	remove
+        	{
+        		rowsReordered -= value;
+        	}
+        }
 
 		public void InitializeBackend (object frontend, ApplicationContext context)
 		{
@@ -387,11 +398,16 @@ namespace Xwt
 		{
 			int count = list.Count;
 			list.Clear ();
-			for (int n=0; n<count; n++) {
+			for (int n=count-1; n>=0; n--) {
 				if (RowDeleted != null)
 					RowDeleted (this, new ListRowEventArgs (n));
 			}
 		}
+
+		protected virtual void OnRowsReordered(ListRowOrderEventArgs e)
+		{
+			if (rowsReordered != null) System.Diagnostics.Debug.WriteLine($"No support for {nameof(rowsReordered)} events from {nameof(DefaultListStoreBackend)}, sorry.");
+		}	
 	}
 }
 

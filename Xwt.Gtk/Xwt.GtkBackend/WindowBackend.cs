@@ -27,6 +27,8 @@
 
 using System;
 using Xwt.Backends;
+using Xwt.CairoBackend;
+using Xwt.Drawing;
 
 namespace Xwt.GtkBackend
 {
@@ -91,7 +93,6 @@ namespace Xwt.GtkBackend
 				MenuBackend m = (MenuBackend) menu;
 				mainMenu = m.MenuBar;
 				mainBox.PackStart (mainMenu, false, false, 0);
-				((Gtk.Box.BoxChild)mainBox[mainMenu]).Position = 0;
 			} else
 				mainMenu = null;
 		}
@@ -120,6 +121,20 @@ namespace Xwt.GtkBackend
 		{
 			width = RequestedSize.Width;
 			height = RequestedSize.Height;
+		}
+
+		Color? backgroundColor;
+
+		Color IWindowBackend.BackgroundColor {
+			get {
+				return backgroundColor ?? Window.GetBackgroundColor ();
+			}
+			set {
+				backgroundColor = value;
+				if (Window is GtkPopoverWindow)
+					((GtkPopoverWindow)Window).BackgroundColor = value.ToCairoColor ();
+				Window.SetBackgroundColor (value);
+			}
 		}
 	}
 

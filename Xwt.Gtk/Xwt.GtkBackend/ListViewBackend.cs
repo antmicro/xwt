@@ -112,6 +112,13 @@ namespace Xwt.GtkBackend
 			ScrollToRow (it);
 		}
 
+		public void StartEditingCell (int row, CellView cell)
+		{
+			var col = GetCellColumn (cell);
+			if (col != null)
+				Widget.SetCursor (new Gtk.TreePath (new [] { row }), col, true);
+		}
+
 		public int[] SelectedRows {
 			get {
 				var sel = Widget.Selection.GetSelectedRows ();
@@ -213,6 +220,11 @@ namespace Xwt.GtkBackend
 				path = path.Split (':') [0];
 			}
 			CurrentEventRow = int.Parse (path);
+
+			/* INTRODUCED BY houen */
+			SelectRow(int.Parse(path));
+            //base.SetCurrentEventRow(path);
+			/* INTRODUCED BY houen */
 		}
 	}
 }

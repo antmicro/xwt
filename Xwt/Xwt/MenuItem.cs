@@ -28,7 +28,7 @@ using System;
 using Xwt.Backends;
 using System.ComponentModel;
 using Xwt.Drawing;
-
+using Xwt.Accessibility;
 
 namespace Xwt
 {
@@ -54,6 +54,16 @@ namespace Xwt
 			}
 		}
 		
+		Accessible accessible;
+		public Accessible Accessible {
+			get {
+				if (accessible == null) {
+					accessible = new Accessible (this);
+				}
+				return accessible;
+			}
+		}
+
 		protected override Xwt.Backends.BackendHost CreateBackendHost ()
 		{
 			return new MenuItemBackendHost ();
@@ -103,6 +113,38 @@ namespace Xwt
 				if (IsSeparator)
 					throw new NotSupportedException ();
 				Backend.Label = value;
+			}
+		}
+
+		string markup;
+		/// <summary>
+		/// Gets or sets the text with markup to display.
+		/// </summary>
+		/// <remarks>
+		/// <see cref="Xwt.FormattedText"/> for supported formatting options.</remarks>
+		[DefaultValue ("")]
+		public string Markup {
+			get { return markup; }
+			set {
+				markup = value;
+				var t = FormattedText.FromMarkup (markup);
+				Backend.SetFormattedText (t);
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the tooltip text.
+		/// </summary>
+		/// <value>The tooltip text.</value>
+		[DefaultValue("")]
+		public string TooltipText
+		{
+			get { return Backend.TooltipText ?? ""; }
+			set
+			{
+				if (IsSeparator)
+					throw new NotSupportedException();
+				Backend.TooltipText = value;
 			}
 		}
 
@@ -200,6 +242,14 @@ namespace Xwt
 				clicked -= value;
 				base.BackendHost.OnAfterEventRemove (MenuItemEvent.Clicked, clicked);
 			}
+		}
+
+		protected override void Dispose (bool release_all)
+		{
+			if (release_all) {
+				Backend.Dispose ();
+			}
+			base.Dispose (release_all);
 		}
 	}
 	

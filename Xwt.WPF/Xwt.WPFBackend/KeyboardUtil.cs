@@ -151,6 +151,7 @@ namespace Xwt.WPFBackend
 				case WpfKey.OemMinus: return isShiftPressed ? Key.Underscore : Key.Minus;   // -_
 			}
 
+
 			return (Key)0;
 		}
 	}

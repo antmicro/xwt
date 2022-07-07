@@ -23,89 +23,132 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using System;
-using Xwt.Backends;
-
-#if MONOMAC
-using nint = System.Int32;
-using nfloat = System.Single;
-using MonoMac.AppKit;
-#else
 using AppKit;
-#endif
+using Xwt.Backends;
 
 namespace Xwt.Mac
 {
-	public class CellViewBackend: ICellViewBackend
+	public class CellViewBackend: ICellViewBackend, ICanvasCellViewBackend
 	{
-		NSTableView table;
-		int column;
+		WidgetEvent enabledEvents;
+		NSTableRowView currentParentRowView;
 
 		public CellViewBackend (NSTableView table, int column)
 		{
-			this.table = table;
-			this.column = column;
+			Table = table;
+			Column = column;
 		}
-
-		public ICellViewFrontend Frontend { get; private set; }
 
 		public virtual void InitializeBackend (object frontend, ApplicationContext context)
 		{
 			Frontend = (ICellViewFrontend)frontend;
+			Context = context;
 		}
 
-		public NSCell CurrentCell { get; set; }
+		public ICellViewFrontend Frontend { get; private set; }
 
-		public int Column {
+		public ICellViewEventSink EventSink { get; private set; }
+
+		public ApplicationContext Context { get; private set; }
+
+		internal NSView CurrentCellView { get; private set; }
+
+		internal NSTableRowView CurrentParentRowView {
 			get {
-				return column;
+				if (currentParentRowView == null)
+				{
+					currentParentRowView = GetParentRowView ();
+				}
+				return currentParentRowView;
 			}
 		}
 
-		public int CurrentRow { get; set; }
+		public int Column { get; private set; }
 
-		internal ITablePosition CurrentPosition { get; set; }
+		public NSTableView Table { get; internal set; }
+
+		internal ITablePosition CurrentPosition { get; private set; }
+
+		internal void Load (ICellRenderer cell)
+		{
+			CurrentCellView = (NSView)cell;
+			CurrentPosition = cell.CellContainer.TablePosition;
+			currentParentRowView = null;
+			EventSink = Frontend.Load (cell.CellContainer);
+		}
+
+		NSTableRowView GetParentRowView()
+		{
+			var view = CurrentCellView;
+			while (view?.Superview != null)
+			{
+				if (view.Superview is NSTableRowView)
+				{
+					return (NSTableRowView)view.Superview;
+				}
+				view = view.Superview;
+
+			}
+			return null;
+		}
 
 		public virtual void EnableEvent (object eventId)
 		{
+			if (eventId is WidgetEvent)
+				enabledEvents |= (WidgetEvent)eventId;
 		}
-
+		
 		public virtual void DisableEvent (object eventId)
 		{
+			if (eventId is WidgetEvent)
+				enabledEvents &= ~(WidgetEvent)eventId;
+		}
+
+		public bool GetIsEventEnabled (WidgetEvent eventId)
+		{
+			return enabledEvents.HasFlag (eventId);
+		}
+
+		public void QueueDraw ()
+		{
+			CurrentCellView.NeedsDisplay = true;
+		}
+
+		public void QueueResize ()
+		{
+			CurrentCellView.NeedsDisplay = true;
+			((ICellRenderer)CurrentCellView).CellContainer.InvalidateRowHeight ();
 		}
 
 		public Rectangle CellBounds {
 			get {
-				if (CurrentPosition is TableRow) {
-					var r = table.GetCellFrame (column, ((TableRow)CurrentPosition).Row);
-					r = ((ICellRenderer)CurrentCell).CellContainer.GetCellRect (r, CurrentCell);
-					return new Rectangle (r.X, r.Y, r.Width, r.Height);
-				}
-				return Rectangle.Zero;
+				return CurrentCellView.ConvertRectToView (CurrentCellView.Frame, Table).ToXwtRect ();
 			}
 		}
 
 		public Rectangle BackgroundBounds {
 			get {
-				// TODO
-				return CellBounds;
+				return CurrentCellView.ConvertRectToView (CurrentCellView.Frame, ((ICellRenderer)CurrentCellView).CellContainer.Superview).ToXwtRect ();
 			}
 		}
 
 		public bool Selected {
 			get {
-				if (CurrentPosition is TableRow) {
-					return table.IsRowSelected (((TableRow)CurrentPosition).Row);
-				}
-				// TODO
-				return false;
+				if (CurrentPosition is TableRow)
+					return Table.IsRowSelected (((TableRow)CurrentPosition).Row);
+				return Table.IsRowSelected (Table.RowForView (CurrentCellView));
 			}
 		}
 
 		public bool HasFocus {
 			get {
-				// TODO
-				return false;
+				return CurrentCellView?.Window != null && CurrentCellView.Window.FirstResponder == CurrentCellView;
+			}
+		}
+
+		public bool IsHighlighted {
+			get {
+				return CurrentParentRowView?.Emphasized ?? false;
 			}
 		}
 	}

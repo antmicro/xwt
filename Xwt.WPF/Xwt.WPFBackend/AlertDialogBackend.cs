@@ -39,6 +39,7 @@ namespace Xwt.WPFBackend
 		MessageBoxImage icon;
 		MessageBoxOptions options;
 		MessageBoxResult defaultResult;
+		ApplicationContext context;
 
 		public AlertDialogBackend()
 		{
@@ -50,26 +51,30 @@ namespace Xwt.WPFBackend
 
 		public void Initialize (ApplicationContext actx)
 		{
+			context = actx;
 		}
 
 		public Command Run (WindowFrame transientFor, MessageDescription message)
 		{
 			this.icon = GetIcon (message.Icon);
-			if (ConvertButtons (message.Buttons, out buttons)) {
+			if (string.IsNullOrEmpty (message.Title))
+				message.Title = transientFor?.Title ?? string.Empty;
+
+			if (ConvertButtons (message.Buttons, out buttons) && message.Options.Count == 0) {
 				// Use a system message box
 				if (message.SecondaryText == null)
-					message.SecondaryText = String.Empty;
+					message.SecondaryText = string.Empty;
 				else {
 					message.Text = message.Text + "\r\n\r\n" + message.SecondaryText;
-					message.SecondaryText = String.Empty;
+					message.SecondaryText = string.Empty;
 				}
-				var wb = (WindowFrameBackend)Toolkit.GetBackend (transientFor);
-				if (wb != null) {
-					this.dialogResult = MessageBox.Show (wb.Window, message.Text, message.SecondaryText,
+				var parent =  context.Toolkit.GetNativeWindow(transientFor) as System.Windows.Window;
+				if (parent != null) {
+					this.dialogResult = MessageBox.Show (parent, message.Text, message.Title,
 														this.buttons, this.icon, this.defaultResult, this.options);
 				}
 				else {
-					this.dialogResult = MessageBox.Show (message.Text, message.SecondaryText, this.buttons,
+					this.dialogResult = MessageBox.Show (message.Text, message.Title, this.buttons,
 														this.icon, this.defaultResult, this.options);
 				}
 				return ConvertResultToCommand (this.dialogResult);
@@ -79,6 +84,7 @@ namespace Xwt.WPFBackend
 				Dialog dlg = new Dialog ();
 				dlg.Resizable = false;
 				dlg.Padding = 0;
+				dlg.Title = message.Title;
 				HBox mainBox = new HBox { Margin = 25 };
 
 				if (message.Icon != null) {
@@ -88,7 +94,7 @@ namespace Xwt.WPFBackend
 				VBox box = new VBox () { Margin = 3, MarginLeft = 8, Spacing = 15 };
 				mainBox.PackStart (box, true);
 				var text = new Label {
-					Text = message.Text ?? ""
+					Text = message.Text ?? string.Empty
 				};
 				Label stext = null;
 				box.PackStart (text);
@@ -98,7 +104,15 @@ namespace Xwt.WPFBackend
 					};
 					box.PackStart (stext);
 				}
+				foreach (var option in message.Options) {
+					var check = new CheckBox (option.Text);
+					check.Active = option.Value;
+					box.PackStart(check);
+					check.Toggled += (sender, e) => message.SetOptionValue(option.Id, check.Active);
+				}
 				dlg.Buttons.Add (message.Buttons.ToArray ());
+				if (message.DefaultButton >= 0 && message.DefaultButton < message.Buttons.Count)
+					dlg.DefaultCommand = message.Buttons[message.DefaultButton];
 				if (mainBox.Surface.GetPreferredSize (true).Width > 480) {
 					text.Wrap = WrapMode.Word;
 					if (stext != null)

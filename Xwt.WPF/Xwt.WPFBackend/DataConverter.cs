@@ -211,18 +211,24 @@ namespace Xwt.WPFBackend
 
 		public static SW.FontWeight ToWpfFontWeight (this FontWeight value)
 		{
+			if (value == FontWeight.Ultrathin) return SW.FontWeights.Thin;
 			if (value == FontWeight.Thin) return SW.FontWeights.Thin;
 			if (value == FontWeight.Ultralight) return SW.FontWeights.UltraLight;
 			if (value == FontWeight.Light) return SW.FontWeights.Light;
 			if (value == FontWeight.Semilight) return SW.FontWeights.Light;
 			if (value == FontWeight.Book) return SW.FontWeights.Normal;
+			if (value == FontWeight.Normal) return SW.FontWeights.Normal;
 			if (value == FontWeight.Medium) return SW.FontWeights.Medium;
+			if (value == FontWeight.Mediumbold) return SW.FontWeights.Medium;
 			if (value == FontWeight.Semibold) return SW.FontWeights.SemiBold;
 			if (value == FontWeight.Bold) return SW.FontWeights.Bold;
 			if (value == FontWeight.Ultrabold) return SW.FontWeights.UltraBold;
 			if (value == FontWeight.Heavy) return SW.FontWeights.Black;
 			if (value == FontWeight.Ultraheavy) return SW.FontWeights.UltraBlack;
-			
+			if (value == FontWeight.Semiblack) return SW.FontWeights.UltraBlack;
+			if (value == FontWeight.Black) return SW.FontWeights.UltraBlack;
+			if (value == FontWeight.Ultrablack) return SW.FontWeights.UltraBlack;
+
 			return SW.FontWeights.Normal;
 		}
 
@@ -371,6 +377,30 @@ namespace Xwt.WPFBackend
 			}
 
 			return retval;
+		}
+
+		public static ButtonEventArgs ToXwtButtonArgs (this MouseButtonEventArgs e, FrameworkElement target)
+		{
+			var pos = e.GetPosition (target);
+			return new ButtonEventArgs () {
+				X = pos.X,
+				Y = pos.Y,
+				MultiplePress = e.ClickCount,
+				Button = e.ChangedButton.ToXwtButton (),
+				IsContextMenuTrigger = e.ChangedButton == MouseButton.Right && e.RightButton == MouseButtonState.Released
+			};
+		}
+
+		public static bool MapToXwtKeyArgs (this System.Windows.Input.KeyEventArgs e, out KeyEventArgs result)
+		{
+			result = null;
+
+			var key = KeyboardUtil.TranslateToXwtKey (e.Key);
+			if ((int)key == 0)
+				return false;
+
+			result = new KeyEventArgs (key, (int)e.Key, KeyboardUtil.GetModifiers (), e.IsRepeat, e.Timestamp);
+			return true;
 		}
 	}
 }

@@ -67,6 +67,10 @@ namespace Xwt.GtkBackend
 
 		public Gtk.ScrollablePolicy VscrollPolicy { get; set; }
 
+		public bool GetBorder(Gtk.Border border) {
+			return false;
+		}
+
 		protected override void OnAdded (Gtk.Widget widget)
 		{
 			base.OnAdded (widget);

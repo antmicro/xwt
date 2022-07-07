@@ -1,6 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFrameworks>net5.0</TargetFrameworks>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+	  <Deterministic>false</Deterministic>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{3B25FD1F-CEBA-4450-8893-DC330FDB56A7}</ProjectGuid>
@@ -9,18 +12,21 @@
     <AssemblyName>Xwt.Gtk3</AssemblyName>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\xwt.snk</AssemblyOriginatorKeyFile>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <NoWarn>0612, 0618</NoWarn>
+    <PropertiesLocation>..\..\..\output\properties.csproj</PropertiesLocation>
   </PropertyGroup>
+  <Import Project="$(PropertiesLocation)" />
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG XWT_GTK3</DefineConstants>
+    <DefineConstants>DEBUG;XWT_GTK3;$(DefineConstants)</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <LangVersion>8</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,19 +36,19 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <DefineConstants>XWT_GTK3</DefineConstants>
+    <DefineConstants>XWT_GTK3;$(DefineConstants)</DefineConstants>
+    <DebugSymbols>true</DebugSymbols>
+    <LangVersion>8</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="atk-sharp, Version=3.0.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
-    <Reference Include="gdk-sharp, Version=3.0.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
-    <Reference Include="glib-sharp, Version=3.0.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
-    <Reference Include="gtk-sharp, Version=3.0.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
-    <Reference Include="pango-sharp, Version=3.0.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
-    <Reference Include="cairo-sharp, Version=1.10.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756" />
-    <Reference Include="gio-sharp, Version=3.0.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+    <PackageReference Include="AtkSharp" Version="3.24.24.34" />
+    <PackageReference Include="GdkSharp" Version="3.24.24.34" />
+    <PackageReference Include="GLibSharp" Version="3.24.24.34" />
+    <PackageReference Include="GtkSharp" Version="3.24.24.34" />
+    <PackageReference Include="PangoSharp" Version="3.24.24.34" />
+    <PackageReference Include="CairoSharp" Version="3.24.24.34" />
+    <PackageReference Include="GioSharp" Version="3.24.24.34" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.Gtk3.cs" />
@@ -127,6 +133,7 @@
     <Compile Include="Xwt.GtkBackend.CellViews\CustomCellRendererImage.cs" />
     <Compile Include="Xwt.GtkBackend.CellViews\CustomCellRendererText.cs" />
     <Compile Include="Xwt.GtkBackend.CellViews\CustomCellRendererToggle.cs" />
+    <Compile Include="Xwt.GtkBackend.CellViews\CustomCellRendererComboBox.cs" />
     <Compile Include="Xwt.GtkBackend.CellViews\Gtk3CellRendererCustom.cs" />
     <Compile Include="Xwt.GtkBackend\CustomListModel.cs" />
     <Compile Include="Xwt.GtkBackend\ListBoxBackend.cs" />
@@ -158,8 +165,10 @@
     <Compile Include="Xwt.GtkBackend\SelectFontDialogBackend.cs" />
     <Compile Include="Xwt.GtkBackend\Gtk3FontChooserDialog.cs" />
     <Compile Include="Xwt.GtkBackend\FontSelectorBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\AccessibleBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\PopupWindowBackend.cs" />
+    <Compile Include="Xwt.GtkBackend\UtilityWindowBackend.cs" />
   </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <ProjectReference Include="..\Xwt\Xwt.csproj">
       <Project>{92494904-35FA-4DC9-BDE9-3A3E87AC49D3}</Project>
@@ -177,17 +186,29 @@
     <Folder Include="Xwt.GtkBackend.CellViews\" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="icons\light\searchbox-clear-16.png">
-      <LogicalName>searchbox-clear-light-16.png</LogicalName>
+    <EmbeddedResource Include="icons\searchbox-clear-16.png">
+      <LogicalName>searchbox-clear-16.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="icons\light\searchbox-clear-16%402x.png">
-      <LogicalName>searchbox-clear-light-16@2x.png</LogicalName>
+    <EmbeddedResource Include="icons\searchbox-clear-16%402x.png">
+      <LogicalName>searchbox-clear-16@2x.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="icons\light\searchbox-search-16%402x.png">
-      <LogicalName>searchbox-search-light-16@2x.png</LogicalName>
+    <EmbeddedResource Include="icons\searchbox-clear-16~dark.png">
+      <LogicalName>searchbox-clear-16~dark.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="icons\light\searchbox-search-16.png">
-      <LogicalName>searchbox-search-light-16.png</LogicalName>
+    <EmbeddedResource Include="icons\searchbox-clear-16~dark%402x.png">
+      <LogicalName>searchbox-clear-16~dark@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\searchbox-search-16%402x.png">
+      <LogicalName>searchbox-search-16@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\searchbox-search-16.png">
+      <LogicalName>searchbox-search-16.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\searchbox-search-16~dark%402x.png">
+      <LogicalName>searchbox-search-16~dark@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\searchbox-search-16~dark.png">
+      <LogicalName>searchbox-search-16~dark.png</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 </Project>

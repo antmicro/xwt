@@ -37,7 +37,11 @@ namespace Samples
 			Label la = new Label ("Right click here to show the context menu");
 			menu = new Menu ();
 			menu.Items.Add (new MenuItem ("One"));
-			menu.Items.Add (new MenuItem ("Two"));
+
+			var menuItem = new MenuItem("Two");
+			menuItem.Accessible.Label = "Menu Item: Two";
+			menu.Items.Add (menuItem);
+
 			menu.Items.Add (new MenuItem ("Three"));
 			menu.Items.Add (new SeparatorMenuItem ());
 
@@ -55,6 +59,7 @@ namespace Samples
 
 			var subMenu = new MenuItem ("Submenu");
 			subMenu.SubMenu = new Menu ();
+			subMenu.SubMenu.Font = subMenu.SubMenu.Font.WithSize (20).WithWeight (Xwt.Drawing.FontWeight.Bold);
 			var subZoomIn = new MenuItem (new Command ("Zoom+", StockIcons.ZoomIn));
 			var subZoomOut = new MenuItem (new Command ("Zoom-", StockIcons.ZoomOut));
 			subMenu.SubMenu.Items.Add (subZoomIn);
@@ -70,8 +75,11 @@ namespace Samples
 
 		void HandleButtonPressed (object sender, ButtonEventArgs e)
 		{
-			if (e.Button == PointerButton.Right)
-				menu.Popup ();
+			if (e.Button == PointerButton.Right) {
+				menu.Popup();
+				menu.Accessible.Label = "Menu";
+				menu.Accessible.Identifier = nameof(menu);
+			}
 		}
 	}
 }

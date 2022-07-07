@@ -44,7 +44,7 @@ namespace Xwt.GtkBackend
 			}
 			set {
 				base.BackgroundColor = value;
-				Widget.ModifyBase (Gtk.StateType.Normal, value.ToGtkValue ());
+				Widget.ModifyBg (Gtk.StateType.Normal, value.ToGtkValue ());
 			}
 		}
 
@@ -72,16 +72,12 @@ namespace Xwt.GtkBackend
 
 		void HandleChanged (object sender, EventArgs e)
 		{
-			ApplicationContext.InvokeUserCode (delegate {
-				EventSink.OnChanged ();
-			});
+			ApplicationContext.InvokeUserCode (EventSink.OnChanged);
 		}
 
 		void HandleActivated (object sender, EventArgs e)
 		{
-			ApplicationContext.InvokeUserCode (delegate {
-				EventSink.OnActivated ();
-			});
+			ApplicationContext.InvokeUserCode (EventSink.OnActivated);
 		}
 	}
 }

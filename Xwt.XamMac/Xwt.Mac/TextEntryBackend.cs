@@ -24,18 +24,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using Xwt.Backends;
 using System;
-
-#if MONOMAC
-using nint = System.Int32;
-using nfloat = System.Single;
-using MonoMac.Foundation;
-using MonoMac.AppKit;
-#else
-using Foundation;
 using AppKit;
-#endif
+using CoreGraphics;
+using Foundation;
+using Xwt.Backends;
 
 namespace Xwt.Mac
 {
@@ -58,9 +51,10 @@ namespace Xwt.Mac
 			base.Initialize ();
 			if (ViewObject is MacComboBox) {
 				((MacComboBox)ViewObject).SetEntryEventSink (EventSink);
-			} else {
+			} else if (ViewObject == null) {
 				var view = new CustomTextField (EventSink, ApplicationContext);
-				ViewObject = new CustomAlignedContainer (EventSink, ApplicationContext, (NSView)view);
+				ViewObject = new CustomAlignedContainer (EventSink, ApplicationContext, (NSView)view) { DrawsBackground = false };
+				Container.ExpandVertically = true;
 				MultiLine = false;
 			}
 			Widget.StringValue = string.Empty;
@@ -123,6 +117,8 @@ namespace Xwt.Mac
 			}
 			set {
 				Widget.Editable = !value;
+				if (value)
+					Widget.AbortEditing ();
 			}
 		}
 
@@ -148,7 +144,7 @@ namespace Xwt.Mac
 			get {
 				if (Widget is MacComboBox)
 					return false;
-				return Widget.Cell.UsesSingleLineMode;
+				return !Widget.Cell.UsesSingleLineMode;
 			}
 			set {
 				if (Widget is MacComboBox)
@@ -162,7 +158,6 @@ namespace Xwt.Mac
 					Widget.Cell.Scrollable = true;
 					Widget.Cell.Wraps = false;
 				}
-				Container.ExpandVertically = value;
 			}
 		}
 
@@ -233,10 +228,12 @@ namespace Xwt.Mac
 			    cacheSelectionLength != SelectionLength) {
 				cacheSelectionStart = SelectionStart;
 				cacheSelectionLength = SelectionLength;
-				ApplicationContext.InvokeUserCode (delegate {
-					EventSink.OnSelectionChanged ();
-				});
+                ApplicationContext.InvokeUserCode (EventSink.OnSelectionChanged);
 			}
+		}
+
+		public bool HasCompletions {
+			get { return false; }
 		}
 
 		public void SetCompletions (string[] completions)
@@ -275,13 +272,26 @@ namespace Xwt.Mac
 			}
 		}
 		#endregion
+
+		public override Drawing.Color BackgroundColor {
+			get {
+				return Widget.BackgroundColor.ToXwtColor ();
+			}
+			set {
+				Widget.BackgroundColor = value.ToNSColor ();
+				Widget.Cell.DrawsBackground = true;
+				Widget.Cell.BackgroundColor = value.ToNSColor ();
+			}
+		}
 	}
 	
 	class CustomTextField: NSTextField, IViewObject
 	{
 		ITextEntryEventSink eventSink;
 		ApplicationContext context;
+		#pragma warning disable CS0414 // The private field is assigned but its value is never used
 		CustomCell cell;
+		#pragma warning disable CS0414
 
 		public CustomTextField (ITextEntryEventSink eventSink, ApplicationContext context)
 		{
@@ -290,8 +300,6 @@ namespace Xwt.Mac
 			this.Cell = cell = new CustomCell {
 				BezelStyle = NSTextFieldBezelStyle.Square,
 				Bezeled = true,
-				DrawsBackground = true,
-				BackgroundColor = NSColor.White,
 				Editable = true,
 				EventSink = eventSink,
 				Context = context,
@@ -315,9 +323,26 @@ namespace Xwt.Mac
 			});
 		}
 
+		public override string StringValue
+		{
+			get { return base.StringValue; }
+			set {
+				if (base.StringValue != value)
+				{
+					base.StringValue = value;
+					context.InvokeUserCode (delegate
+					{
+						eventSink.OnChanged ();
+						eventSink.OnSelectionChanged ();
+					});
+				}
+			}
+		}
+
 		class CustomCell : NSTextFieldCell
 		{
-			CustomEditor editor;
+			NSTextView editor;
+			NSObject selChangeObserver;
 			public ApplicationContext Context {
 				get; set;
 			}
@@ -331,79 +356,136 @@ namespace Xwt.Mac
 
 			}
 
+			protected CustomCell(IntPtr ptr) : base(ptr)
+			{
+			}
+
+			/// <summary>
+			/// Like what happens for the ios designer, AppKit can sometimes clone the native `NSTextFieldCell` using the Copy (NSZone)
+			/// method. We *need* to ensure we can create a new managed wrapper for the cloned native object so we need the IntPtr
+			/// constructor. NOTE: By keeping this override in managed we ensure the new wrapper C# object is created ~immediately,
+			/// which makes it easier to debug issues.
+			/// </summary>
+			/// <returns>The copy.</returns>
+			/// <param name="zone">Zone.</param>
+			public override NSObject Copy(NSZone zone)
+			{
+				// Don't remove this override because the comment on this explains why we need this!
+				var newCell = (CustomCell)base.Copy(zone);
+				newCell.editor = editor;
+				newCell.selChangeObserver = selChangeObserver;
+				newCell.Context = Context;
+				newCell.EventSink = EventSink;
+				return newCell;
+			}
+
 			public override NSTextView FieldEditorForView (NSView aControlView)
 			{
 				if (editor == null) {
-					editor = new CustomEditor {
+					editor = new CustomTextFieldCellEditor {
 						Context = this.Context,
 						EventSink = this.EventSink,
 						FieldEditor = true,
 						Editable = true,
-						DrawsBackground = true,
-						BackgroundColor = NSColor.White,
 					};
+					using (var key = new NSString("NSTextViewDidChangeSelectionNotification"))
+						selChangeObserver = NSNotificationCenter.DefaultCenter.AddObserver (key, HandleSelectionDidChange, editor);
 				}
 				return editor;
 			}
+
+			void HandleSelectionDidChange (NSNotification notif)
+			{
+				Context.InvokeUserCode (EventSink.OnSelectionChanged);
+			}
+
+			public override void DrawInteriorWithFrame (CGRect cellFrame, NSView inView)
+			{
+				base.DrawInteriorWithFrame (VerticalCenteredRectForBounds(cellFrame), inView);
+			}
+
+			public override void EditWithFrame (CGRect aRect, NSView inView, NSText editor, NSObject delegateObject, NSEvent theEvent)
+			{
+				base.EditWithFrame (VerticalCenteredRectForBounds(aRect), inView, editor, delegateObject, theEvent);
+			}
+
+			public override void SelectWithFrame (CGRect aRect, NSView inView, NSText editor, NSObject delegateObject, nint selStart, nint selLength)
+			{
+				base.SelectWithFrame (VerticalCenteredRectForBounds(aRect), inView, editor, delegateObject, selStart, selLength);
+			}
+
+			CGRect VerticalCenteredRectForBounds (CGRect aRect)
+			{
+				// multiline entries should always align on top
+				if (!UsesSingleLineMode)
+					return aRect;
+
+				var textHeight = CellSizeForBounds (aRect).Height;
+				var offset = (aRect.Height - textHeight) / 2;
+				if (offset <= 0) // do nothing if the frame is too small
+					return aRect;
+				var rect = new Rectangle (aRect.X, aRect.Y, aRect.Width, aRect.Height).Inflate (0.0, -offset);
+				return rect.ToCGRect ();
+			}
+		}
+	}
+
+	class CustomTextFieldCellEditor : NSTextView
+	{
+		public ApplicationContext Context
+		{
+			get; set;
 		}
 
-		class CustomEditor : NSTextView
+		public ITextEntryEventSink EventSink
 		{
-			public ApplicationContext Context {
-				get; set;
-			}
+			get; set;
+		}
 
-			public ITextEntryEventSink EventSink {
-				get; set;
-			}
+		public override void KeyDown(NSEvent theEvent)
+		{
+			Context.InvokeUserCode(delegate {
+				EventSink.OnKeyPressed(theEvent.ToXwtKeyEventArgs());
+			});
+			base.KeyDown(theEvent);
+		}
 
-			public CustomEditor ()
+		nint cachedCursorPosition;
+		public override void KeyUp(NSEvent theEvent)
+		{
+			if (cachedCursorPosition != SelectedRange.Location)
 			{
-
-			}
-
-			public override void KeyDown (NSEvent theEvent)
-			{
-				Context.InvokeUserCode (delegate {
-					EventSink.OnKeyPressed (theEvent.ToXwtKeyEventArgs ());
+				cachedCursorPosition = SelectedRange.Location;
+				Context.InvokeUserCode(delegate {
+					EventSink.OnSelectionChanged();
+					EventSink.OnKeyReleased(theEvent.ToXwtKeyEventArgs());
 				});
-				base.KeyDown (theEvent);
 			}
+			base.KeyUp(theEvent);
+		}
 
-			nint cachedCursorPosition;
-			public override void KeyUp (NSEvent theEvent)
+		public override bool BecomeFirstResponder()
+		{
+			var result = base.BecomeFirstResponder();
+			if (result)
 			{
-				if (cachedCursorPosition != SelectedRange.Location) {
-					cachedCursorPosition = SelectedRange.Location;
-					Context.InvokeUserCode (delegate {
-						EventSink.OnSelectionChanged ();
-						EventSink.OnKeyReleased (theEvent.ToXwtKeyEventArgs ());
-					});
-				}
-				base.KeyUp (theEvent);
+				Context.InvokeUserCode(() => {
+					EventSink.OnGotFocus();
+				});
 			}
+			return result;
+		}
 
-			public override bool BecomeFirstResponder ()
+		public override bool ResignFirstResponder()
+		{
+			var result = base.ResignFirstResponder();
+			if (result)
 			{
-				var result = base.BecomeFirstResponder ();
-				if (result) {
-					Context.InvokeUserCode (() => {
-						EventSink.OnGotFocus ();
-					});
-				}
-				return result;
+				Context.InvokeUserCode(() => {
+					EventSink.OnLostFocus();
+				});
 			}
-
-			public override bool ResignFirstResponder ()
-			{
-				var result = base.ResignFirstResponder ();
-				if (result) {
-					Context.InvokeUserCode (() => {
-						EventSink.OnLostFocus ();
-					});
-				}
-				return result;
-			}
+			return result;
 		}
 	}
 }

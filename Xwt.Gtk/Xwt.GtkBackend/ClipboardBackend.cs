@@ -97,8 +97,8 @@ namespace Xwt.GtkBackend
 				return clipboard.WaitForText ();
 			if (type == TransferDataType.PrimaryText)
 				return primaryClipboard.WaitForText ();
-			if (type == TransferDataType.Text)
-				return clipboard.WaitForImage ();
+			if (type == TransferDataType.Image)
+				return ApplicationContext.Toolkit.WrapImage (new GtkImage (clipboard.WaitForImage()));
 			
 			TransferDataStore store = new TransferDataStore ();
 			

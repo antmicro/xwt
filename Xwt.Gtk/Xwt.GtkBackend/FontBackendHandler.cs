@@ -43,19 +43,23 @@ namespace Xwt.GtkBackend
 		}
 
 		public override object GetSystemDefaultFont ()
-		{
-			var la = new Gtk.Label ("");
-			return la.Style.FontDescription;
+		{	
+			return Gtk.Widget.DefaultStyle.FontDesc;
 		}
 
 		public override IEnumerable<string> GetInstalledFonts ()
 		{
-			return systemContext.FontMap.Families.Select (f => f.Name);
+			var fontNames = systemContext.Families.Select (f => f.Name);
+			if (Platform.IsMac) {
+				var macFonts = new string [] { "-apple-system-font", ".AppleSystemUIFont" }.AsEnumerable ();
+				return macFonts.Concat (fontNames);
+			}
+			return fontNames;
 		}
 
 		public override IEnumerable<KeyValuePair<string, object>> GetAvailableFamilyFaces (string family)
 		{
-			FontFamily pangoFamily = systemContext.FontMap.Families.FirstOrDefault (f => f.Name == family);
+			FontFamily pangoFamily = systemContext.Families.FirstOrDefault (f => f.Name == family);
 			if (pangoFamily != null) {
 				foreach (var face in pangoFamily.Faces)
 					yield return new KeyValuePair<string, object>(face.FaceName, face.Describe ());
@@ -65,7 +69,11 @@ namespace Xwt.GtkBackend
 
 		public override object Create (string fontName, double size, FontStyle style, FontWeight weight, FontStretch stretch)
 		{
-			return FontDescription.FromString (fontName + ", " + style + " " + weight + " " + stretch + " " + size.ToString (CultureInfo.InvariantCulture));
+			var result = FontDescription.FromString (fontName + " " + size.ToString (CultureInfo.InvariantCulture));
+			result.Style = (Pango.Style)style;
+			result.Weight = (Pango.Weight)weight;
+			result.Stretch = (Pango.Stretch)stretch;
+			return result;
 		}
 
 		[System.Runtime.InteropServices.DllImport (GtkInterop.LIBFONTCONFIG)]

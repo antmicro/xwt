@@ -79,10 +79,7 @@ namespace Xwt.GtkBackend
 				set {
 					text = value ?? String.Empty;;
 					indexer = null;
-					if (attributes != null) {
-						attributes.Dispose ();
-						attributes = null;
-					}
+					ClearAttributes ();
 				}
 			}
 			
@@ -129,6 +126,13 @@ namespace Xwt.GtkBackend
 		{
 			((IDisposable)SharedContext).Dispose ();
 		}
+
+		public static void DisposeIt()
+		{
+			(SharedContext as IDisposable).Dispose();
+		}
+
+		
 		public override object Create ()
 		{
 			return new PangoBackend {
@@ -147,7 +151,7 @@ namespace Xwt.GtkBackend
 		public override void SetFont (object backend, Xwt.Drawing.Font font)
 		{
 			var tl = (PangoBackend)backend;
-			tl.Layout.FontDescription = (Pango.FontDescription)Toolkit.GetBackend (font);
+			tl.Layout.FontDescription = (Pango.FontDescription)ApplicationContext.Toolkit.GetSafeBackend (font);
 		}
 		
 		public override void SetWidth (object backend, double value)
@@ -160,7 +164,13 @@ namespace Xwt.GtkBackend
 		{
 			this.Heigth = value;
 		}
-		
+
+		public override void SetAlignment (object backend, Alignment alignment)
+		{
+			var tl = (PangoBackend)backend;
+			tl.Layout.Alignment = alignment.ToPangoAlignment ();
+		}
+
 		public override void SetTrimming (object backend, TextTrimming textTrimming)
 		{
 			var tl = (PangoBackend)backend;
@@ -195,7 +205,7 @@ namespace Xwt.GtkBackend
 		{
 			var tl = (PangoBackend) backend;
 			int index, trailing;
-			tl.Layout.XyToIndex ((int)x, (int)y, out index, out trailing);
+			tl.Layout.XyToIndex (Pango.Units.FromPixels ((int)x), Pango.Units.FromPixels ((int)y), out index, out trailing);
 			return tl.TextIndexer.ByteIndexToIndex (index);
 		}
 
@@ -212,6 +222,16 @@ namespace Xwt.GtkBackend
 			// Just get the first line
 			using (var iter = tl.Layout.Iter)
 				return Pango.Units.ToPixels (iter.Baseline);
+		}
+
+		public override double GetMeanline (object backend)
+		{
+			var tl = (PangoBackend)backend;
+			var baseline = 0;
+			using (var iter = tl.Layout.Iter)
+				baseline = iter.Baseline;
+			var font = tl.Layout.Context.LoadFont (tl.Layout.FontDescription);
+			return Pango.Units.ToPixels (baseline - font.GetMetrics (Pango.Language.Default).StrikethroughPosition);
 		}
 
 		public override void Dispose (object backend)

@@ -39,7 +39,6 @@ namespace Xwt.GtkBackend
 	{
 		Color? textColor;
 		List<LabelLink> links;
-		TextIndexer indexer;
 
 		public LabelBackend ()
 		{
@@ -47,6 +46,8 @@ namespace Xwt.GtkBackend
 			Label.Show ();
 			Label.Xalign = 0;
 			Label.Yalign = 0.5f;
+			Label.Realized += HandleStyleUpdate;
+			Label.StyleSet += HandleStyleUpdate;
 		}
 		
 		new ILabelEventSink EventSink {
@@ -146,26 +147,29 @@ namespace Xwt.GtkBackend
 			get { return Label.Text; }
 			set {
 				links = null;
-				indexer = null;
 				Label.Text = value;
 			}
 		}
 
+		public bool Selectable {
+			get { return Label.Selectable; }
+			set { Label.Selectable = value; }
+		}
+
+		FormattedText formattedText;
 		public void SetFormattedText (FormattedText text)
 		{
 			Label.Text = text.Text;
-			var list = new FastPangoAttrList ();
-			indexer = new TextIndexer (text.Text);
-			list.AddAttributes (indexer, text.Attributes);
-			gtk_label_set_attributes (Label.Handle, list.Handle);
+			formattedText = text;
+			var indexer = Label.ApplyFormattedText (text);
 
 			if (links != null)
 				links.Clear ();
 
 			foreach (var attr in text.Attributes.OfType<LinkTextAttribute> ()) {
 				LabelLink ll = new LabelLink () {
-					StartIndex = indexer.IndexToByteIndex (attr.StartIndex),
-					EndIndex = indexer.IndexToByteIndex (attr.StartIndex + attr.Count),
+					StartIndex = indexer != null ? indexer.IndexToByteIndex (attr.StartIndex) : attr.StartIndex,
+					EndIndex = indexer != null ? indexer.IndexToByteIndex (attr.StartIndex + attr.Count) : attr.StartIndex + attr.Count,
 					Target = attr.Target
 				};
 				if (links == null) {
@@ -181,12 +185,20 @@ namespace Xwt.GtkBackend
 			}
 		}
 
+		void HandleStyleUpdate (object sender, EventArgs e)
+		{
+			// force text update with updated link color
+			if (Label.IsRealized && formattedText != null) {
+				SetFormattedText (formattedText);
+			}
+		}
+
 		[DllImport (GtkInterop.LIBGTK, CallingConvention=CallingConvention.Cdecl)]
 		static extern void gtk_label_set_attributes (IntPtr label, IntPtr attrList);
 
 		public Xwt.Drawing.Color TextColor {
 			get {
-				return textColor.HasValue ? textColor.Value : Widget.Style.Foreground (Gtk.StateType.Normal).ToXwtValue ();
+				return textColor.HasValue ? textColor.Value : Gtk.Widget.DefaultStyle.White.ToXwtValue ();
 			}
 			set {
 				var color = value.ToGtkValue ();

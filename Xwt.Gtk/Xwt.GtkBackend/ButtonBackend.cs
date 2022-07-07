@@ -36,7 +36,9 @@ namespace Xwt.GtkBackend
 	{
 		protected bool ignoreClickEvents;
 		ImageDescription image;
+		ContentPosition contentPosition;
 		Pango.FontDescription customFont;
+		Gtk.Label labelWidget;
 		
 		public ButtonBackend ()
 		{
@@ -46,8 +48,12 @@ namespace Xwt.GtkBackend
 		{
 			NeedsEventBox = false;
 			Widget = new Gtk.Button ();
+			Widget.Realized += (o, arg) =>
+			{
+				if (Widget.IsRealized && Widget.CanDefault)
+					Widget.GrabDefault();
+			};
 			base.Widget.Show ();
-			
 		}
 		
 		protected new Gtk.Button Widget {
@@ -62,6 +68,29 @@ namespace Xwt.GtkBackend
 		protected override void OnSetBackgroundColor (Color color)
 		{
 			Widget.SetBackgroundColor (color);
+			Widget.SetBackgroundColor (Gtk.StateType.Prelight, color);
+		}
+
+		Color? customLabelColor;
+
+		public virtual Color LabelColor {
+			get {
+				return customLabelColor.HasValue ? customLabelColor.Value : Gtk.Widget.DefaultStyle.White.ToXwtValue ();
+			}
+			set {
+				customLabelColor = value;
+				Widget.SetForegroundColor (value);
+				Widget.SetForegroundColor (Gtk.StateType.Prelight, value);
+				if (labelWidget != null) {
+					labelWidget.SetForegroundColor (value);
+					labelWidget.SetForegroundColor (Gtk.StateType.Prelight, value);
+				}
+			}
+		}
+
+		public virtual bool IsDefault {
+			get { return Widget.CanDefault; }
+			set { Widget.CanDefault = value; }
 		}
 
 		public override object Font {
@@ -74,17 +103,24 @@ namespace Xwt.GtkBackend
 				SetButtonType (ButtonType.Normal);
 			}
 		}
-		
+
 		public void SetContent (string label, bool useMnemonic, ImageDescription image, ContentPosition position)
+		{
+			SetContent (label, useMnemonic, image, position, false);
+		}
+
+		void SetContent (string label, bool useMnemonic, ImageDescription image, ContentPosition position, bool forceCustomLabel)
 		{			
 			Widget.UseUnderline = useMnemonic;
 			this.image = image;
+			contentPosition = position;
+			formattedText = null;
 
 			if (label != null && label.Length == 0)
 				label = null;
 			
 			Button b = (Button) Frontend;
-			if (label != null && image.Backend == null && b.Type == ButtonType.Normal) {
+			if (label != null && image.Backend == null && b.Type == ButtonType.Normal && !forceCustomLabel) {
 				Widget.Label = label;
 				return;
 			}
@@ -102,7 +138,12 @@ namespace Xwt.GtkBackend
 			if (image.Backend != null)
 				imageWidget = new ImageBox (ApplicationContext, image.WithDefaultSize (Gtk.IconSize.Button));
 
-			Gtk.Label labelWidget = null;
+			if (labelWidget != null)
+			{
+				labelWidget.Realized -= HandleStyleUpdate;
+				labelWidget.StyleSet -= HandleStyleUpdate;
+				labelWidget = null;
+			}
 
 			if (label != null && imageWidget == null) {
 				contentWidget = labelWidget = new Gtk.Label (label);
@@ -139,9 +180,9 @@ namespace Xwt.GtkBackend
 				contentWidget.ShowAll ();
 				Widget.Label = null;
 				Widget.Image = contentWidget;
-				if (expandButtonContent) {
-					var alignment = Widget.Child as Gtk.Alignment;
-					if (alignment != null) {
+				var alignment = Widget.Child as Gtk.Alignment;
+				if (alignment != null) {
+					if (expandButtonContent) {
 						var box = alignment.Child as Gtk.Box;
 						if (box != null) {
 							alignment.Xscale = 1;
@@ -149,17 +190,26 @@ namespace Xwt.GtkBackend
 							if (labelWidget != null)
 								labelWidget.Xalign = 0;
 						}
+					} else if (position == ContentPosition.Left && (contentWidget is Gtk.Box)) {
+						// in case the button is wider than its natural size and has text and an image on the left,
+						// optimize its alignment to make the text more centered.
+						// FIXME: more sophisticated size calculation
+						alignment.Xalign = 0.475f;
 					}
 				}
 				if (labelWidget != null) {
 					labelWidget.UseUnderline = useMnemonic;
 					if (customFont != null)
 						labelWidget.ModifyFont (customFont);
+					if (customLabelColor.HasValue) {
+						labelWidget.SetForegroundColor (customLabelColor.Value);
+						labelWidget.SetForegroundColor (Gtk.StateType.Prelight, customLabelColor.Value);
+					}
 				}
 			} else
 				Widget.Label = null;
 		}
-		
+
 		public void SetButtonStyle (ButtonStyle style)
 		{
 			switch (style) {
@@ -183,7 +233,32 @@ namespace Xwt.GtkBackend
 			Button b = (Button) Frontend;
 			SetContent (b.Label, b.UseMnemonic, image, b.ImagePosition);
 		}
-		
+
+		FormattedText formattedText;
+		public void SetFormattedText (FormattedText text)
+		{
+			// set content with a custom label, this will recreate labelWidget
+			SetContent (text?.Text, Widget.UseUnderline, image, contentPosition, true);
+			formattedText = text;
+			if (!string.IsNullOrEmpty (formattedText?.Text))
+			{
+				if (labelWidget.IsRealized)
+					labelWidget.ApplyFormattedText (formattedText);
+				else
+					labelWidget.Realized += HandleStyleUpdate;
+				labelWidget.StyleSet += HandleStyleUpdate;
+			}
+		}
+
+		void HandleStyleUpdate (object sender, EventArgs e)
+		{
+			// force text update with updated link color
+			if (labelWidget.IsRealized && formattedText != null)
+			{
+				labelWidget.ApplyFormattedText (formattedText);
+			}
+		}
+
 		public override void EnableEvent (object eventId)
 		{
 			base.EnableEvent (eventId);
@@ -207,9 +282,7 @@ namespace Xwt.GtkBackend
 		void HandleWidgetClicked (object sender, EventArgs e)
 		{
 			if (!ignoreClickEvents) {
-				ApplicationContext.InvokeUserCode (delegate {
-					EventSink.OnClicked ();
-				});
+				ApplicationContext.InvokeUserCode (EventSink.OnClicked);
 			}
 		}
 		
@@ -236,6 +309,17 @@ namespace Xwt.GtkBackend
 		{
 			Widget.Child.SizeAllocate (args.Allocation);
 			args.RetVal = true;
+		}
+
+		protected override void Dispose (bool disposing)
+		{
+			if (disposing && labelWidget != null) {
+				labelWidget.Realized -= HandleStyleUpdate;
+				labelWidget.StyleSet -= HandleStyleUpdate;
+				labelWidget.Destroy ();
+				labelWidget = null;
+			}
+			base.Dispose (disposing);
 		}
 	}
 }

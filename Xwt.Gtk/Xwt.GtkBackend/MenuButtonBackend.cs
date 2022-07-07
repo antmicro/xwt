@@ -108,10 +108,11 @@ namespace Xwt.GtkBackend
 			Gdk.Rectangle rect = w.Allocation;
 			x += rect.X;
 			y += rect.Y + rect.Height;
-			
+
+			Gtk.Requisition requisition = mn.SizeRequest();
 			//if the menu would be off the bottom of the screen, "drop" it upwards
-			if (y + mn.Requisition.Height > w.Screen.Height) {
-				y -= mn.Requisition.Height;
+			if (y + requisition.Height > w.Screen.Height) {
+				y -= requisition.Height;
 				y -= rect.Height;
 			}
 			

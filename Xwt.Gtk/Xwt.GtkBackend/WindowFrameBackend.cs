@@ -27,15 +27,16 @@
 // THE SOFTWARE.
 using System;
 using Xwt.Backends;
-using System.Runtime.InteropServices;
-using Xwt.Drawing;
+// using Xwt.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Xwt.GtkBackend
 {
 	public class WindowFrameBackend: IWindowFrameBackend
 	{
 		Gtk.Window window;
+		IntPtr nativeHandle = IntPtr.Zero;
 		IWindowFrameEventSink eventSink;
 		WindowFrame frontend;
 		Size requestedSize;
@@ -58,6 +59,18 @@ namespace Xwt.GtkBackend
 					window.Realized -= HandleRealized;
 				window = value;
 				window.Realized += HandleRealized;
+			}
+		}
+
+		object IWindowFrameBackend.Window {
+			get { return Window; }
+		}
+
+		public IntPtr NativeHandle {
+			get {
+				if (nativeHandle == IntPtr.Zero)
+					nativeHandle = GtkWorkarounds.GetGtkWindowNativeHandle (Window);
+				return nativeHandle;
 			}
 		}
 
@@ -86,6 +99,20 @@ namespace Xwt.GtkBackend
 		{
 			throw new NotSupportedException ();
 		}
+
+		#if !XWT_GTK3
+		void HandleSizeRequested (object sender, Gtk.SizeRequestedArgs args)
+		{
+			if (!Window.Resizable) {
+				int w = args.Requisition.Width, h = args.Requisition.Height;
+				if (w < (int) requestedSize.Width)
+					w = (int) requestedSize.Width;
+				if (h < (int) requestedSize.Height)
+					h = (int) requestedSize.Height;
+				args.Requisition = new Gtk.Requisition () { Width = w, Height = h };
+			}
+		}
+		#endif
 		
 		#region IWindowFrameBackend implementation
 		void IWindowFrameBackend.Initialize (IWindowFrameEventSink eventSink)
@@ -94,25 +121,19 @@ namespace Xwt.GtkBackend
 			Initialize ();
 
 			#if !XWT_GTK3
-			Window.SizeRequested += delegate(object o, Gtk.SizeRequestedArgs args) {
-				if (!Window.Resizable) {
-					int w = args.Requisition.Width, h = args.Requisition.Height;
-					if (w < (int) requestedSize.Width)
-						w = (int) requestedSize.Width;
-					if (h < (int) requestedSize.Height)
-						h = (int) requestedSize.Height;
-					args.Requisition = new Gtk.Requisition () { Width = w, Height = h };
-				}
-			};
+			Window.SizeRequested += HandleSizeRequested;
 			#endif
 		}
-		
-		public virtual void Initialize ()
+
+		public virtual void Initialize()
 		{
 		}
-		
+
 		public virtual void Dispose ()
 		{
+			#if !XWT_GTK3
+			Window.SizeRequested -= HandleSizeRequested;
+			#endif
 			Window.Destroy ();
 		}
 		
@@ -122,6 +143,15 @@ namespace Xwt.GtkBackend
 
 		public void Move (double x, double y)
 		{
+			#if !XWT_GTK3
+			// HACK: some WMs will show the window at a default location and move it
+			//       to its final location after the window has already been shown,
+			//       causing the window to flicker in some cases.
+			//       Setting an initial Allocation often helps to show the window
+			//       at the desired location initially (but not always).
+			if (!Window.Visible)
+				Window.Allocation = new Gdk.Rectangle ((int)x, (int)y, Window.Allocation.Width, Window.Allocation.Height);
+			#endif
 			Window.Move ((int)x, (int)y);
 			ApplicationContext.InvokeUserCode (delegate {
 				EventSink.OnBoundsChanged (Bounds);
@@ -131,9 +161,9 @@ namespace Xwt.GtkBackend
 		public virtual void SetSize (double width, double height)
 		{
 			Window.SetDefaultSize ((int)width, (int)height);
-			if (width == -1)
+			if (width <= 0)
 				width = Bounds.Width;
-			if (height == -1)
+			if (height <= 0)
 				height = Bounds.Height;
 			requestedSize = new Size (width, height);
 			Window.Resize ((int)width, (int)height);
@@ -153,6 +183,15 @@ namespace Xwt.GtkBackend
 			}
 			set {
 				requestedSize = value.Size;
+				#if !XWT_GTK3
+				// HACK: some WMs will show the window at a default location and move it
+				//       to its final location after the window has already been shown,
+				//       causing the window to flicker in some cases.
+				//       Setting an initial Allocation often helps to show the window
+				//       at the desired location initially (but not always).
+				if (!Window.Visible)
+					Window.Allocation = new Gdk.Rectangle ((int)value.X, (int)value.Y, (int)value.Width, (int)value.Height);
+				#endif
 				Window.Move ((int)value.X, (int)value.Y);
 				Window.Resize ((int)value.Width, (int)value.Height);
 				Window.SetDefaultSize ((int)value.Width, (int)value.Height);
@@ -164,6 +203,11 @@ namespace Xwt.GtkBackend
 
 		public Size RequestedSize {
 			get { return requestedSize; }
+		}
+
+		string IWindowFrameBackend.Name {
+			get { return Window.Name; }
+			set { Window.Name = value; }
 		}
 
 		bool IWindowFrameBackend.Visible {
@@ -227,7 +271,7 @@ namespace Xwt.GtkBackend
 
 		void IWindowFrameBackend.SetTransientFor (IWindowFrameBackend window)
 		{
-			Window.TransientFor = ((WindowFrameBackend)window).Window;
+			Window.TransientFor = ApplicationContext.Toolkit.GetNativeWindow (window) as Gtk.Window;
 		}
 
 		public bool Resizable {
@@ -301,16 +345,12 @@ namespace Xwt.GtkBackend
 		
 		void HandleHidden (object sender, EventArgs e)
 		{
-			ApplicationContext.InvokeUserCode (delegate {
-				EventSink.OnHidden ();
-			});
+			ApplicationContext.InvokeUserCode (EventSink.OnHidden);
 		}
 
 		void HandleShown (object sender, EventArgs e)
 		{
-			ApplicationContext.InvokeUserCode (delegate {
-				EventSink.OnShown ();
-			});
+			ApplicationContext.InvokeUserCode (EventSink.OnShown);
 		}
 
 		[GLib.ConnectBefore]

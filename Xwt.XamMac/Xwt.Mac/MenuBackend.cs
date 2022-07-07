@@ -25,15 +25,9 @@
 // THE SOFTWARE.
 
 using System;
-using Xwt.Backends;
-
-#if MONOMAC
-using nint = System.Int32;
-using nfloat = System.Single;
-using MonoMac.AppKit;
-#else
 using AppKit;
-#endif
+using CoreGraphics;
+using Xwt.Backends;
 
 namespace Xwt.Mac
 {
@@ -74,12 +68,55 @@ namespace Xwt.Mac
 		public void Popup ()
 		{
 			var evt = NSApplication.SharedApplication.CurrentEvent;
-			NSMenu.PopUpContextMenu (this, evt, evt.Window.ContentView, null);
+			if (evt != null)
+				NSMenu.PopUpContextMenu (this, evt, evt.Window.ContentView);
+			else if (MainWindow?.ContentView != null)
+				Popup (MainWindow.ContentView, MainWindow.MouseLocationOutsideOfEventStream);
+
 		}
 		
 		public void Popup (IWidgetBackend widget, double x, double y)
 		{
-			NSMenu.PopUpContextMenu (this, NSApplication.SharedApplication.CurrentEvent, ((ViewBackend)widget).Widget, null);
+			var refView = (widget as EmbedNativeWidgetBackend)?.EmbeddedView;
+
+			if (refView == null)
+				refView = (widget as ViewBackend)?.Widget;
+
+			if (refView == null) {
+				try {
+					refView = GtkQuartz.GetView (widget.NativeWidget);
+					// GtkNSView is not necessarily exclusive, translate coords to the ContentView of the window
+					refView = refView.Window.ContentView;
+					var location = widget.ConvertToWindowCoordinates (new Point (x, y)).ToCGPoint ();
+					location = refView.ConvertPointToView (location, null);
+					if (refView.IsFlipped)
+						location.Y = refView.Frame.Height - location.Y;
+					Popup (refView, location);
+				} catch (Exception ex) {
+					throw new ArgumentException ("Widget belongs to an unsupported Toolkit", nameof (widget), ex);
+				}
+			} else
+				Popup (refView, new CGPoint (x, y));
+		}
+
+		void Popup (NSView view, CGPoint point)
+		{
+			this.PopUpMenu (null, point, view);
+		}
+
+		NSWindow MainWindow {
+			get {
+				return NSApplication.SharedApplication.MainWindow;
+			}
+		}
+
+		object IMenuBackend.Font {
+			get {
+				return FontData.FromFont (Font);
+			}
+			set {
+				Font = ((FontData)value).Font;
+			}
 		}
 	}
 }

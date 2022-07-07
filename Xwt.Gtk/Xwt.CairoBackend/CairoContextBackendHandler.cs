@@ -26,6 +26,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Linq;
 using Xwt.Backends;
 
 using Xwt.Drawing;
@@ -41,13 +42,15 @@ namespace Xwt.CairoBackend
 		public Cairo.Surface TempSurface;
 		public double ScaleFactor = 1;
 		public double PatternAlpha = 1;
+		public StyleSet Styles;
 		internal Point Origin = Point.Zero;
 
-		Stack<Data> dataStack = new Stack<Data> ();
+		Data stackTop;
 
-		struct Data {
+		class Data {
 			public double PatternAlpha;
 			public double GlobalAlpha;
+			public Data Previous;
 		}
 
 		public CairoContextBackend (double scaleFactor)
@@ -70,16 +73,21 @@ namespace Xwt.CairoBackend
 		public void Save ()
 		{
 			Context.Save ();
-			dataStack.Push (new Data () {
+			stackTop = new Data {
 				PatternAlpha = PatternAlpha,
-				GlobalAlpha = GlobalAlpha
-			});
+				GlobalAlpha = GlobalAlpha,
+				Previous = stackTop,
+			};
 		}
 
 		public void Restore ()
 		{
 			Context.Restore ();
-			var d = dataStack.Pop ();
+			if (stackTop == null)
+				return;
+
+			var d = stackTop;
+			stackTop = stackTop.Previous;
 			PatternAlpha = d.PatternAlpha;
 			GlobalAlpha = d.GlobalAlpha;
 		}
@@ -119,6 +127,12 @@ namespace Xwt.CairoBackend
 			gc.GlobalAlpha = alpha;
 		}
 		
+		public override void SetStyles (object backend, StyleSet styles)
+		{
+			CairoContextBackend gc = (CairoContextBackend) backend;
+			gc.Styles = styles;
+		}
+
 		const double degrees = System.Math.PI / 180d;
 
 		public override void Arc (object backend, double xc, double yc, double radius, double angle1, double angle2)
@@ -314,6 +328,8 @@ namespace Xwt.CairoBackend
 			CairoContextBackend ctx = (CairoContextBackend)backend;
 
 			img.Alpha *= ctx.GlobalAlpha;
+			img.Styles = img.Styles.AddRange (ctx.Styles);
+
 			var pix = (Xwt.GtkBackend.GtkImage) img.Backend;
 
 			pix.Draw (ApplicationContext, ctx.Context, ctx.ScaleFactor, x, y, img);
@@ -331,6 +347,7 @@ namespace Xwt.CairoBackend
 			ctx.Context.Translate (destRect.X-srcRect.X*sx, destRect.Y-srcRect.Y*sy);
 			ctx.Context.Scale (sx, sy);
 			img.Alpha *= ctx.GlobalAlpha;
+			img.Styles = img.Styles.AddRange (ctx.Styles);
 
 			var pix = (Xwt.GtkBackend.GtkImage) img.Backend;
 			pix.Draw (ApplicationContext, ctx.Context, ctx.ScaleFactor, 0, 0, img);

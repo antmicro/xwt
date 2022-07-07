@@ -70,6 +70,23 @@ namespace Xwt.GtkBackend
 				return bar;
 			}
 		}
+
+		Pango.FontDescription customFont;
+
+		public virtual object Font {
+			get {
+				return customFont ?? menu.Style.FontDesc;
+			}
+			set {
+				customFont = (Pango.FontDescription) value;
+				foreach (var item in menu.AllChildren) {
+					var bin = item as Gtk.Container;
+					if (bin != null)
+						foreach (Gtk.Widget w in bin.Children)
+							w.ModifyFont (customFont);
+				}
+			}
+		}
 		
 		void TransferProps (Gtk.MenuShell oldMenu, Gtk.MenuShell newMenu)
 		{
@@ -82,6 +99,9 @@ namespace Xwt.GtkBackend
 		public void InsertItem (int index, IMenuItemBackend menuItem)
 		{
 			Gtk.MenuItem item = ((MenuItemBackend)menuItem).MenuItem;
+			if (customFont != null)
+				foreach(Gtk.Widget w in item.AllChildren)
+					w.ModifyFont (customFont);
 			menu.Insert (item, index);
 		}
 
@@ -89,6 +109,7 @@ namespace Xwt.GtkBackend
 		{
 			Gtk.MenuItem item = ((MenuItemBackend)menuItem).MenuItem;
 			menu.Remove (item);
+			item.Destroy ();
 		}
 
 		public void EnableEvent (object eventId)
@@ -106,7 +127,10 @@ namespace Xwt.GtkBackend
 		
 		public void Popup (IWidgetBackend widget, double x, double y)
 		{
-			GtkWorkarounds.ShowContextMenu (Menu, ((WidgetBackend)widget).Widget, new Gdk.Rectangle ((int)x, (int)y, 0, 0));
+			var target = widget as WidgetBackend;
+			if (target == null)
+				throw new ArgumentException ("Widget belongs to an unsupported Toolkit", nameof (widget));
+			GtkWorkarounds.ShowContextMenu (Menu, target.Widget, new Gdk.Rectangle ((int)x, (int)y, 0, 0));
 		}
 	}
 }

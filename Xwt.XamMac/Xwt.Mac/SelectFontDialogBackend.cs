@@ -23,31 +23,39 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using Xwt.Backends;
-using Xwt.Drawing;
 
-#if MONOMAC
-using MonoMac.AppKit;
-using MonoMac.Foundation;
-#else
 using AppKit;
 using Foundation;
-#endif
+using Xwt.Backends;
+using Xwt.Drawing;
 
 namespace Xwt.Mac
 {
 	public class SelectFontDialogBackend : ISelectFontDialogBackend
 	{
 		readonly NSFontPanel fontPanel;
+		ApplicationContext context;
 
 		public SelectFontDialogBackend ()
 		{
 			fontPanel = NSFontPanel.SharedFontPanel;
 		}
 
+		public void Initialize (ApplicationContext actx)
+		{
+			context = actx;
+		}
+
 		public bool Run (IWindowFrameBackend parent)
 		{
 			fontPanel.Delegate = new FontPanelDelegate ();
+
+			if (parent != null)
+			{
+				var macParent = parent as NSWindow ?? context.Toolkit.GetNativeWindow (parent) as NSWindow ?? NSApplication.SharedApplication.KeyWindow;
+				if (macParent != null && fontPanel.EffectiveAppearance.Name != macParent.EffectiveAppearance.Name)
+					fontPanel.Appearance = macParent.EffectiveAppearance;
+			}
 
 			if (SelectedFont != null) {
 				NSFontManager.SharedFontManager.SetSelectedFont (((FontData)Toolkit.GetBackend (SelectedFont)).Font, false);

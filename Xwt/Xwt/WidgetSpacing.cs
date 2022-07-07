@@ -31,9 +31,7 @@ using Xwt.Backends;
 
 using Xwt.Drawing;
 using System.Reflection;
-using System.Xaml;
 using System.Linq;
-using System.Windows.Markup;
 using System.Text;
 using System.Globalization;
 
@@ -43,9 +41,10 @@ namespace Xwt
 	/// Spacing/Margin around a widget.
 	/// </summary>
 	[TypeConverter (typeof(WidgetSpacingValueConverter))]
-	[ValueSerializer (typeof(WidgetSpacingValueSerializer))]
-	public struct WidgetSpacing
+	public struct WidgetSpacing : IEquatable<WidgetSpacing>
 	{
+		public static WidgetSpacing Zero = new WidgetSpacing ();
+
 		static public implicit operator WidgetSpacing (double value)
 		{
 			return new WidgetSpacing (value, value, value, value);
@@ -99,6 +98,12 @@ namespace Xwt
 			get { return Top + Bottom; }
 		}
 
+		public bool IsZero {
+			get {
+				return ((Left == 0) && (Right == 0) && (Top == 0) && (Bottom == 0));
+			}
+		}
+
 		/// <summary>
 		/// Get the spacing of a widget for the specified orientation.
 		/// </summary>
@@ -110,6 +115,41 @@ namespace Xwt
 				return Top + Bottom;
 			else
 				return Left + Right;
+		}
+
+		// Equality
+		public override bool Equals (object o)
+		{
+			if (!(o is WidgetSpacing))
+				return false;
+
+			return (this == (WidgetSpacing)o);
+		}
+
+		public bool Equals (WidgetSpacing other)
+		{
+			return this == other;
+		}
+
+		public override int GetHashCode ()
+		{
+			unchecked {
+				var hash = Left.GetHashCode ();
+				hash = (hash * 397) ^ Right.GetHashCode ();
+				hash = (hash * 397) ^ Top.GetHashCode ();
+				hash = (hash * 397) ^ Bottom.GetHashCode ();
+				return hash;
+			}
+		}
+
+		public static bool operator == (WidgetSpacing s1, WidgetSpacing s2)
+		{
+			return ((s1.Left == s2.Left) && (s1.Right == s2.Right) && (s1.Top == s2.Top) && (s1.Bottom == s2.Bottom));
+		}
+
+		public static bool operator != (WidgetSpacing s1, WidgetSpacing s2)
+		{
+			return !(s1 == s2);
 		}
 	}
 
@@ -124,56 +164,6 @@ namespace Xwt
 		public override bool CanConvertFrom (ITypeDescriptorContext context, Type sourceType)
 		{
 			return sourceType == typeof(string);
-		}
-	}
-	
-	class WidgetSpacingValueSerializer: ValueSerializer
-	{
-		public override bool CanConvertFromString (string value, IValueSerializerContext context)
-		{
-			return true;
-		}
-		
-		public override bool CanConvertToString (object value, IValueSerializerContext context)
-		{
-			return true;
-		}
-		
-		public override string ConvertToString (object value, IValueSerializerContext context)
-		{
-			WidgetSpacing s = (WidgetSpacing) value;
-			if (s.Left == s.Right && s.Right == s.Top && s.Top == s.Bottom)
-				return s.Left.ToString (CultureInfo.InvariantCulture);
-			if (s.Bottom != 0)
-				return s.Left.ToString (CultureInfo.InvariantCulture) + " " + s.Top.ToString (CultureInfo.InvariantCulture) + " " + s.Right.ToString (CultureInfo.InvariantCulture) + " " + s.Bottom.ToString (CultureInfo.InvariantCulture);
-			if (s.Right != 0)
-				return s.Left.ToString (CultureInfo.InvariantCulture) + " " + s.Top.ToString (CultureInfo.InvariantCulture) + " " + s.Right.ToString (CultureInfo.InvariantCulture);
-			return s.Left.ToString (CultureInfo.InvariantCulture) + " " + s.Top.ToString (CultureInfo.InvariantCulture);
-		}
-		
-		public override object ConvertFromString (string value, IValueSerializerContext context)
-		{
-			WidgetSpacing c = new WidgetSpacing ();
-			string[] values = value.Split (new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-			if (values.Length == 0)
-				return c;
-
-			double v;
-			if (double.TryParse (values [0], NumberStyles.Any, CultureInfo.InvariantCulture, out v))
-				c.Left = v;
-
-			if (value.Length == 1) {
-				c.Top = c.Right = c.Bottom = v;
-				return c;
-			}
-
-			if (value.Length >= 2 && double.TryParse (values [1], NumberStyles.Any, CultureInfo.InvariantCulture, out v))
-				c.Top = v;
-			if (value.Length >= 3 && double.TryParse (values [2], NumberStyles.Any, CultureInfo.InvariantCulture, out v))
-				c.Right = v;
-			if (value.Length >= 4 && double.TryParse (values [3], NumberStyles.Any, CultureInfo.InvariantCulture, out v))
-				c.Bottom = v;
-			return c;
 		}
 	}
 }

@@ -90,6 +90,51 @@ namespace Xwt
 			OnPreferredSizeChanged ();
 		}
 
+		public string PlainText {
+			get {
+				IRichTextBuffer currentBuffer = Backend.CurrentBuffer;
+				if (currentBuffer == null)
+					return null;
+				return currentBuffer.PlainText;				
+			}
+		}
+
+		public bool ReadOnly {
+			get {
+				return Backend.ReadOnly;
+			}
+			set {
+				Backend.ReadOnly = value;
+			}
+		}
+
+		public bool Selectable {
+			get {
+				return Backend.Selectable;
+			}
+			set {
+				Backend.Selectable = value;
+			}
+		}
+
+		public int LineSpacing {
+			get {
+				return Backend.LineSpacing;
+			}
+			set {
+				Backend.LineSpacing = value;
+			}
+		}
+
+		public Drawing.Color TextColor {
+			get {
+				return Backend.TextColor;
+			}
+			set {
+				Backend.TextColor = value;
+			}
+		}
+
 		protected override BackendHost CreateBackendHost ()
 		{
 			return new WidgetBackendHost ();
@@ -126,6 +171,25 @@ namespace Xwt
 		public MarkdownView ()
 		{
 			Markdown = string.Empty;
+		}
+	}
+
+	public class MarkupView : RichTextView
+	{
+		string markup;
+		public string Markup {
+			get {
+				return markup;
+			}
+			set {
+				markup = value;
+				LoadText (value, TextFormat.Markup);
+			}
+		}
+
+		public MarkupView ()
+		{
+			Markup = string.Empty;
 		}
 	}
 }
