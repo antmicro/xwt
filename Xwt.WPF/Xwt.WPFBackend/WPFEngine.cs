@@ -253,14 +253,6 @@ namespace Xwt.WPFBackend
 			}
 		}
 
-		private void TimerTick(object sender, EventArgs e)
-		{
-			while (eventsToRun.TryTake(out var action))
-			{
-				action();
-			}
-		}
-
 		public override void RenderImage (object nativeWidget, object nativeContext, ImageDescription img, double x, double y)
 		{
 			WpfImage im = (WpfImage)img.Backend;
