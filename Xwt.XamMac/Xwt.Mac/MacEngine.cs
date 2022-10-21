@@ -45,7 +45,7 @@ namespace Xwt.Mac
 			get { return appDelegate; }
 		}
 		
-		public override void InitializeApplication ()
+		public override bool InitializeApplication ()
 		{
 			if (InitializeToolkit)
 			{
@@ -70,6 +70,8 @@ namespace Xwt.Mac
 				// as there are some non-NSApplicationDelegate methods still used by Xwt
 				appDelegate = new AppDelegate(IsGuest);
 			}
+
+			return true;
 		}
 
 		public override void InitializeBackends ()

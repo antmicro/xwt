@@ -42,11 +42,14 @@ namespace Xwt.GtkBackend
 
 		internal GtkPlatformBackend PlatformBackend { get { return platformBackend; } }
 
-		public override void InitializeApplication ()
+		public override bool InitializeApplication ()
 		{
 			eventsToRun = new BlockingCollection<Action> ();
 
-			Gtk.Application.Init ();
+			var name = Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]);
+			var args = new string[] { };
+
+			return Gtk.Application.InitCheck (name, ref args);
 		}
 
 		public override void InitializeBackends ()

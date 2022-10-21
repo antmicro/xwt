@@ -47,7 +47,7 @@ namespace Xwt.Backends
 		/// </summary>
 		/// <param name="toolkit">Toolkit to initialize.</param>
 		/// <param name="isGuest">If set to <c>true</c> the toolkit will be initialized as guest of another toolkit.</param>
-		internal void Initialize (Toolkit toolkit, bool isGuest, bool initializeToolkit)
+		internal bool Initialize (Toolkit toolkit, bool isGuest, bool initializeToolkit)
 		{
 			this.toolkit = toolkit;
 			this.isGuest = isGuest;
@@ -58,7 +58,7 @@ namespace Xwt.Backends
 				backendTypesByFrontend = new Dictionary<Type, Type> ();
 				InitializeBackends ();
 			}
-			InitializeApplication ();
+			return InitializeApplication ();
 		}
 
 		/// <summary>
@@ -95,10 +95,11 @@ namespace Xwt.Backends
 		}
 
 		/// <summary>
-		/// Initializes the application.
+		/// Initializes the application. Returns true on success.
 		/// </summary>
-		public virtual void InitializeApplication ()
+		public virtual bool InitializeApplication ()
 		{
+			return true;
 		}
 
 		/// <summary>

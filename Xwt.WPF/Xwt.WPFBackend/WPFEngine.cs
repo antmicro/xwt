@@ -54,7 +54,7 @@ namespace Xwt.WPFBackend
 			Instance = this;
 		}
 
-		public override void InitializeApplication ()
+		public override bool InitializeApplication ()
 		{
 			application = System.Windows.Application.Current;
 			eventsToRun = new BlockingCollection<Action> ();
@@ -127,6 +127,8 @@ namespace Xwt.WPFBackend
 			RegisterBackend<IPopupWindowBackend, WindowBackend>();
 			RegisterBackend<IUtilityWindowBackend, WindowBackend>();
 			RegisterBackend<IAccessibleBackend, AccessibleBackend>();
+
+			return true;
 		}
 
 		public override void DispatchPendingEvents()

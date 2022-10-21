@@ -40,10 +40,11 @@ namespace CoreTests
 		{
 		}
 
-		public override void InitializeApplication ()
+		public override bool InitializeApplication ()
 		{
 			base.InitializeApplication ();
 			EventQueue.MainEventQueue.Reset ();
+			return true;
 		}
 
 		public override void DispatchPendingEvents ()

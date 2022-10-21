@@ -204,7 +204,8 @@ namespace Xwt
 			Toolkit t = new Toolkit ();
 
 			if (!string.IsNullOrEmpty (fullTypeName)) {
-				t.LoadBackend (fullTypeName, isGuest, initializeToolkit, true);
+				if (!t.LoadBackend (fullTypeName, isGuest, initializeToolkit, true))
+					throw new Exception ("Toolkit could not be loaded");
 				var bk = knownBackends.FirstOrDefault (tk => fullTypeName.StartsWith (tk.TypeName));
 				if (bk != null)
 					t.Type = bk.Type;
@@ -233,8 +234,10 @@ namespace Xwt
 
 			Toolkit t = new Toolkit ();
 			t.toolkitType = type;
-			t.LoadBackend (GetBackendType (type), true, true, true);
-			return t;
+			if (t.LoadBackend (GetBackendType (type), true, true, true))
+				return t;
+			else
+				throw new Exception ("Toolkit could not be loaded");
 		}
 
 		/// <summary>
@@ -286,8 +289,7 @@ namespace Xwt
 					Type t = asm.GetType (type);
 					if (t != null) {
 						backend = (ToolkitEngineBackend) Activator.CreateInstance (t);
-						Initialize (isGuest, initializeToolkit);
-						return true;
+						return Initialize (isGuest, initializeToolkit);
 					}
 				}
 			}
@@ -300,10 +302,11 @@ namespace Xwt
 			return false;
 		}
 
-		void Initialize (bool isGuest, bool initializeToolkit)
+		bool Initialize (bool isGuest, bool initializeToolkit)
 		{
 			toolkits[Backend.GetType ()] = this;
-			backend.Initialize (this, isGuest, initializeToolkit);
+			if (!backend.Initialize (this, isGuest, initializeToolkit))
+				return false;
 			ContextBackendHandler = Backend.CreateBackend<ContextBackendHandler> ();
 			GradientBackendHandler = Backend.CreateBackend<GradientBackendHandler> ();
 			TextLayoutBackendHandler = Backend.CreateBackend<TextLayoutBackendHandler> ();
@@ -316,6 +319,7 @@ namespace Xwt
 			DesktopBackend = Backend.CreateBackend<DesktopBackend> ();
 			VectorImageRecorderContextHandler = new VectorImageRecorderContextHandler (this);
 			KeyboardHandler = Backend.CreateBackend<KeyboardHandler> ();
+			return true;
 		}
 
 		/// <summary>
