@@ -49,15 +49,7 @@ namespace Xwt.GtkBackend
 			var name = Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]);
 			var args = new string[] { };
 
-			var ret = Gtk.Application.InitCheck (name, ref args);
-
-			// Gtk.Application.Init () doesn't set MainThread, while the overload with
-			// arguments and InitCheck do. Closing a second TermSharp window will
-			// trigger an AssertMainThread then. This is a workaround.
-			var mainThreadField = typeof(Gtk.Application).GetField("MainThread", BindingFlags.Static | BindingFlags.NonPublic);
-			mainThreadField.SetValue(null, null);
-
-			return ret;
+			return Gtk.Application.InitCheck (name, ref args);
 		}
 
 		public override void InitializeBackends ()
