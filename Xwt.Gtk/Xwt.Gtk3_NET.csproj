@@ -169,11 +169,12 @@
     <ProjectReference Include="..\Xwt\Xwt_NET.csproj"/>
   </ItemGroup>
   <ItemGroup />
-  <ItemGroup>
-    <None Include="Xwt.Gtk3.dll.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
+  <Target Name="BuildDllConfig" AfterTargets="AfterBuild">
+    <Copy SourceFiles="Xwt.Gtk3.dll.config" DestinationFolder="$(OutDir)" />
+  </Target>
+  <Target Name="PublishDllConfig" AfterTargets="Publish">
+    <Copy SourceFiles="Xwt.Gtk3.dll.config" DestinationFolder="$(PublishDir)" />
+  </Target>
   <ItemGroup>
     <Folder Include="icons\" />
     <Folder Include="Xwt.GtkBackend.CellViews\" />
