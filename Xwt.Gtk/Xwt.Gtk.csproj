@@ -1,15 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition="$(NET) == 'true'">
-    <BaseIntermediateOutputPath>obj\$(MSBuildProjectName)</BaseIntermediateOutputPath>
-  </PropertyGroup>
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition="$(NET) == 'true'"/>
-  <PropertyGroup Condition="$(NET) == 'true'">
-    <TargetFrameworks>net6.0</TargetFrameworks>
-    <EnableDefaultItems>false</EnableDefaultItems>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-	  <Deterministic>false</Deterministic>
-  </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -21,7 +11,7 @@
     <AssemblyOriginatorKeyFile>..\xwt.snk</AssemblyOriginatorKeyFile>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <TargetFrameworkVersion Condition="$(NET) != 'true'">v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
@@ -48,7 +38,7 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <LangVersion>7</LangVersion>
   </PropertyGroup>
-  <ItemGroup Condition="$(NET) != 'true'">
+  <ItemGroup>
     <Reference Include="System" />
     <Reference Include="gtk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
       <Package>gtk-sharp-2.0</Package>
@@ -69,7 +59,7 @@
     </Reference>
     <Reference Include="System.Drawing" />
   </ItemGroup>
-  <ItemGroup Condition="$(NET) != 'true'">
+  <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="Xwt.GtkBackend\LabelBackend.cs" />
     <Compile Include="Xwt.GtkBackend\PasswordEntryBackend.cs" />
@@ -186,9 +176,9 @@
     <Compile Include="Xwt.GtkBackend\PopupWindowBackend.cs" />
     <Compile Include="Xwt.GtkBackend\UtilityWindowBackend.cs" />
   </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" Condition="$(NET) != 'true'"/>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets"/>
   <ItemGroup>
-    <ProjectReference Include="..\Xwt\Xwt.csproj" Condition="$(NET) != 'true'">
+    <ProjectReference Include="..\Xwt\Xwt.csproj">
       <Project>{92494904-35FA-4DC9-BDE9-3A3E87AC49D3}</Project>
       <Name>Xwt</Name>
     </ProjectReference>
@@ -226,7 +216,6 @@
       <LogicalName>searchbox-search-16~dark.png</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" Condition="$(NET) == 'true'" />
   <!-- https://github.com/NuGet/Home/issues/4532#issuecomment-278525026 -->
   <Target Name="ResolveNuGetPackageAssets"
         DependsOnTargets="$(ResolveNuGetPackageAssetsDependsOn)"

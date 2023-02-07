@@ -1,19 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition="$(NET) == 'true'">
-    <BaseIntermediateOutputPath>obj\$(MSBuildProjectName)</BaseIntermediateOutputPath>
-  </PropertyGroup>
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition="$(NET) == 'true'"/>
-  <PropertyGroup Condition="$(NET) == 'true'">
-    <TargetFrameworks Condition="$(OS) != 'Windows_NT'">net6.0</TargetFrameworks>
-    <TargetFrameworks Condition="$(OS) == 'Windows_NT'">net5.0-windows10.0.17763.0</TargetFrameworks>
-    <EnableDefaultItems>false</EnableDefaultItems>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-	  <Deterministic>false</Deterministic>
-    <UseWindowsForms Condition="$(OS) == 'Windows_NT'">true</UseWindowsForms>
-    <UseWPF Condition="$(OS) == 'Windows_NT'">true</UseWPF>
-    <ReferenceWpfAeroTheme>true</ReferenceWpfAeroTheme>
-  </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -21,7 +7,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Xwt.WPF</RootNamespace>
     <AssemblyName>Xwt.WPF</AssemblyName>
-    <TargetFrameworkVersion Condition="$(NET) != 'true'">v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
@@ -47,7 +33,7 @@
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>..\xwt.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
-  <ItemGroup Condition="$(NET) != 'true'">
+  <ItemGroup>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="PresentationFramework.Aero" />
@@ -60,14 +46,6 @@
     <Reference Include="UIAutomationProvider" />
     <Reference Include="UIAutomationTypes" />
     <Reference Include="WindowsBase" />
-  </ItemGroup>
-  <ItemGroup Condition="$(NET) == 'true'">
-    <PackageReference Include="Microsoft.Windows.Compatibility">
-      <Version>5.0.2</Version>
-    </PackageReference>
-    <PackageReference Include="System.Drawing.Common">
-      <Version>5.0.2</Version>
-    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
@@ -184,7 +162,7 @@
     <Compile Include="Xwt.WPFBackend.Utilities\MarkupToPlainTextConverter.cs" />
     <!-- <Compile Include="Xwt.WPFBackend.Utilities\MultiColumnTreeViewItem.cs" /> -->
   </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" Condition="$(NET) != 'true'"/>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets"/>
   <ItemGroup>
     <ProjectReference Include="..\Xwt\Xwt.csproj">
       <Project>{92494904-35FA-4DC9-BDE9-3A3E87AC49D3}</Project>
@@ -211,96 +189,4 @@
     <EmbeddedResource Include="icons\remove-16~disabled.png" />
     <EmbeddedResource Include="icons\remove-16~dark~disabled.png" />
   </ItemGroup>
-  <!-- 
-    Usage:
-      To reference a specific WPF theme assembly, set one or more of these properties to true.
-      If no property is set to true, then all theme assemblies are referenced (default). 
-      
-      Setting one property to 'true' implies that other properties are 'false' by default (unless they are 
-      explicitly set to true). 
-      
-       <PropertyGroup>
-          <ReferenceWpfAeroTheme>true</ReferenceWpfAeroTheme>
-          <ReferenceWpfAero2Theme>true</ReferenceWpfAero2Theme>
-          <ReferenceWpfAeroLiteTheme>true</ReferenceWpfAeroLiteTheme>
-          <ReferenceWpfClassicTheme>true</ReferenceWpfClassicTheme>
-          <ReferenceWpfLunaTheme>true</ReferenceWpfLunaTheme>
-          <ReferenceWpfRoyaleTheme>true</ReferenceWpfRoyaleTheme>
-       </PropertyGroup>
-     
-     Advanced Usage:
-      To reference more than one theme assembly at the same time, use an 'alias' 
-        See 'Aliases' in the documentation for [MSBuild Reference element](https://docs.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=vs-2019)
-        and the [C# compiler commandline documentation for -reference](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-options/reference-compiler-option)
-      
-      This only works in C#. 
-      
-      <PropertyGroup>
-        <WpfAeroThemeAliases>namespace</WpfAeroThemeAliases>
-        <WpfAero2ThemeAliases>namespace</WpfAero2ThemeAliases>
-        <WpfAeroLiteThemeAliases>nameaspace</WpfAeroLiteThemeAliases>
-        <WpfClassicThemeAliases>namespace</WpfClassicThemeAliases>
-        <WpfLunaThemeAliases>namespace</WpfLunaThemeAliases>
-        <WpfRoyaleThemeAliases>namespace</WpfRoyaleThemeAliases>
-      </PropertyGroup>
-  -->
-  <Target Name="SelectWpfThemeAssembly" 
-          AfterTargets="ResolveAssemblyReferences" 
-          Condition="'$(ReferenceWpfAeroTheme)' == 'true'     Or
-                     '$(ReferenceWpfAero2Theme)' == 'true'    Or
-                     '$(ReferenceWpfAeroLiteTheme)' == 'true' Or
-                     '$(ReferenceWpfClassicTheme)' == 'true'  Or 
-                     '$(ReferenceWpfLunaTheme)' == 'true'     Or
-                     '$(ReferenceWpfRoyaleTheme)' == 'true'">
-    <ItemGroup>
-      <_WpfThemeAssemblies Include="@(ReferencePath)"
-                        Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
-                                   '%(ReferencePath.FileName)'=='PresentationFramework.Aero'">
-        <Aliases Condition="'$(WpfAeroThemeAliases)'!=''">$(WpfAeroThemeAliases)</Aliases>
-      </_WpfThemeAssemblies>
-
-      <_WpfThemeAssemblies Include="@(ReferencePath)"
-                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
-                                   '%(ReferencePath.FileName)'=='PresentationFramework.Aero2'">
-        <Aliases Condition="'$(WpfAero2ThemeAliases)'!=''">$(WpfAero2ThemeAliases)</Aliases>
-      </_WpfThemeAssemblies>
-
-      <_WpfThemeAssemblies Include="@(ReferencePath)"
-                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
-                                   '%(ReferencePath.FileName)'=='PresentationFramework.AeroLite'">
-        <Aliases Condition="'$(WpfAeroLiteThemeAliases)'!=''">$(WpfAeroLiteThemeAliases)</Aliases>
-      </_WpfThemeAssemblies>
-
-      <_WpfThemeAssemblies Include="@(ReferencePath)"
-                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
-                                   '%(ReferencePath.FileName)'=='PresentationFramework.Classic'">
-        <Aliases Condition="'$(WpfClassicThemeAliases)'!=''">$(WpfClassicThemeAliases)</Aliases>
-      </_WpfThemeAssemblies>
-
-      <_WpfThemeAssemblies Include="@(ReferencePath)"
-                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
-                                   '%(ReferencePath.FileName)'=='PresentationFramework.Luna'">
-        <Aliases Condition="'$(WpfLunaThemeAliases)'!=''">$(WpfLunaThemeAliases)</Aliases>
-      </_WpfThemeAssemblies>
-
-
-      <_WpfThemeAssemblies Include="@(ReferencePath)"
-                  Condition="'%(ReferencePath.NuGetPackageId)'=='Microsoft.WindowsDesktop.App.Ref'  And 
-                                   '%(ReferencePath.FileName)'=='PresentationFramework.Royale'">
-        <Aliases Condition="'$(WpfRoyaleThemeAliases)'!=''">$(WpfRoyaleThemeAliases)</Aliases>
-      </_WpfThemeAssemblies>
-
-
-      <ReferencePath Remove="@(_WpfThemeAssemblies)" />
-
-      <ReferencePath Include="@(_WpfThemeAssemblies)"
-                     Condition="('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Aero' And '$(ReferenceWpfAeroTheme)'=='true')          Or 
-                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Aero2' And '$(ReferenceWpfAero2Theme)'=='true')        Or 
-                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.AeroLite' And '$(ReferenceWpfAeroLiteTheme)'=='true')  Or 
-                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Classic' And '$(ReferenceWpfClassicTheme)'=='true')    Or 
-                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Luna' And '$(ReferenceWpfLunaTheme)'=='true')          Or
-                                ('%(_WpfThemeAssemblies.FileName)'=='PresentationFramework.Royale' And '$(ReferenceWpfRoyaleTheme)'=='true')" />
-    </ItemGroup>
-  </Target>
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" Condition="$(NET) == 'true'" />
 </Project>
