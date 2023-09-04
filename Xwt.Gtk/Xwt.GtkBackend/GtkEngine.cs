@@ -46,10 +46,18 @@ namespace Xwt.GtkBackend
 		{
 			eventsToRun = new BlockingCollection<Action> ();
 
-			var name = Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]);
-			var args = new string[] { };
+			var args = Environment.GetCommandLineArgs ();
+			bool res;
 
-			var res = Gtk.Application.InitCheck (name, ref args);
+			if (args == null || args.Length == 0) {
+				res = GtkWorkarounds.SafeInitCheck ();
+			}
+			else {
+				var name = Path.GetFileNameWithoutExtension (args[0]);
+				var progargs = new string[] { };
+
+				res = Gtk.Application.InitCheck (name, ref progargs);
+			}
 
 			GtkWorkarounds.InitKeymap ();
 			return res;

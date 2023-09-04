@@ -79,6 +79,9 @@ namespace Xwt.GtkBackend
 		[DllImport (GtkInterop.LIBGTK)]
 		static extern IntPtr gdk_quartz_window_get_nswindow (IntPtr window);
 
+		[DllImport(GtkInterop.LIBGTK, CallingConvention=CallingConvention.Cdecl)]
+		static extern bool gtk_init_check (ref int argc, ref IntPtr argv);
+
 		struct CGRect32
 		{
 			public float X, Y, Width, Height;
@@ -1477,6 +1480,23 @@ namespace Xwt.GtkBackend
 			} catch {
 				return null;
 			}
+		}
+
+		public static bool SafeInitCheck()
+		{
+			var name = "xwt";
+			var args = new string[] { name };
+			
+			var argv = new GLib.Argv (args);
+			var buf = argv.Handle;
+			var argc = args.Length;
+
+			var res = gtk_init_check (ref argc, ref buf);
+
+			if (buf != argv.Handle)
+				return false;
+
+			return res;
 		}
 	}
 	
