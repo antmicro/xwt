@@ -49,7 +49,10 @@ namespace Xwt.GtkBackend
 			var name = Path.GetFileNameWithoutExtension (Environment.GetCommandLineArgs () [0]);
 			var args = new string[] { };
 
-			return Gtk.Application.InitCheck (name, ref args);
+			var res = Gtk.Application.InitCheck (name, ref args);
+
+			GtkWorkarounds.InitKeymap ();
+			return res;
 		}
 
 		public override void InitializeBackends ()

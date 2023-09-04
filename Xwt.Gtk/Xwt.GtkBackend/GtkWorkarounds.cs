@@ -151,7 +151,10 @@ namespace Xwt.GtkBackend
 					oldMacKeyHacks = true;
 				}
 			}
-			
+		}
+
+		public static void InitKeymap () {
+			keymap = Gdk.Keymap.Default;
 			keymap.KeysChanged += delegate {
 				mappedKeys.Clear ();
 			};
@@ -560,7 +563,7 @@ namespace Xwt.GtkBackend
 		[DllImport (GtkInterop.LIBGDK, CallingConvention = CallingConvention.Cdecl)]
 		extern static void gdk_quartz_set_fix_modifiers (bool fix);
 		
-		static Gdk.Keymap keymap = Gdk.Keymap.Default;
+		static Gdk.Keymap keymap;
 		static Dictionary<ulong,MappedKeys> mappedKeys = new Dictionary<ulong,MappedKeys> ();
 		
 		/// <summary>Map raw GTK key input to work around platform bugs and decompose accelerator keys</summary>
