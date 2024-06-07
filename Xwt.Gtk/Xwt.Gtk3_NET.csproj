@@ -8,7 +8,9 @@
     <AssemblyName>Xwt.Gtk3</AssemblyName>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\xwt.snk</AssemblyOriginatorKeyFile>
-    <NoWarn>0612, 0618</NoWarn>
+    <!-- CS8002 warnings are "Referenced assembly '...' does not have a strong name"
+      which are expected for all referenced *Sharp assemblies because they aren't signed. -->
+    <NoWarn>0612, 0618, CS8002</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
