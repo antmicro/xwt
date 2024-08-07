@@ -146,11 +146,7 @@ namespace Xwt
 		/// <param name="val">The value to serialize.</param>
 		public static byte[] SerializeValue (object val)
 		{
-			using (MemoryStream ms = new MemoryStream ()) {
-				BinaryFormatter bf = new BinaryFormatter ();
-				bf.Serialize (ms, val);
-				return ms.ToArray ();
-			}
+			throw new NotImplementedException("SerializeValue disabled due to using obsolete and risky BinaryFormatter.Serialize");
 		}
 		
 		/// <summary>
@@ -160,10 +156,7 @@ namespace Xwt
 		/// <param name="data">The byte array containing the serialized value.</param>
 		public static object DeserializeValue (byte[] data)
 		{
-			using (MemoryStream ms = new MemoryStream (data)) {
-				BinaryFormatter bf = new BinaryFormatter ();
-				return bf.Deserialize (ms);
-			}
+			throw new NotImplementedException("DeserializeValue disabled due to using obsolete and risky BinaryFormatter.DeSerialize");
 		}
 	}
 	
