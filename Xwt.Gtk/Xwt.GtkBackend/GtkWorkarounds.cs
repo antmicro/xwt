@@ -74,8 +74,11 @@ namespace Xwt.GtkBackend
 		static extern void objc_msgSend_CGRect32 (out CGRect32 rect, IntPtr klass, IntPtr selector);
 
 		[DllImport (LIBOBJC, EntryPoint = "objc_msgSend_stret")]
-		static extern void objc_msgSend_CGRect64 (out CGRect64 rect, IntPtr klass, IntPtr selector);
+		static extern void objc_msgSend_CGRect64_stret (out CGRect64 rect, IntPtr klass, IntPtr selector);
 		
+		[DllImport (LIBOBJC, EntryPoint = "objc_msgSend")]
+		static extern CGRect64 objc_msgSend_CGRect64_val (IntPtr klass, IntPtr selector);
+
 		[DllImport (GtkInterop.LIBGTK)]
 		static extern IntPtr gdk_quartz_window_get_nswindow (IntPtr window);
 
@@ -178,6 +181,14 @@ namespace Xwt.GtkBackend
 			sel_setHasShadow = sel_registerName ("setHasShadow:");
 			sel_invalidateShadow = sel_registerName ("invalidateShadow");
 			sharedApp = objc_msgSend_IntPtr (objc_getClass ("NSApplication"), sel_registerName ("sharedApplication"));
+		}
+		
+		private static void objc_msgSend_CGRect64 (out CGRect64 ret, IntPtr klass, IntPtr selector)
+		{
+			if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+				ret = objc_msgSend_CGRect64_val (klass, selector);
+			else
+				objc_msgSend_CGRect64_stret (out ret, klass, selector);
 		}
 		
 		static Gdk.Rectangle MacGetUsableMonitorGeometry (Gdk.Screen screen, int monitor)
