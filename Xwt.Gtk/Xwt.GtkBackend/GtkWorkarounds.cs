@@ -185,9 +185,11 @@ namespace Xwt.GtkBackend
 		
 		private static void objc_msgSend_CGRect64 (out CGRect64 ret, IntPtr klass, IntPtr selector)
 		{
+#if NET
 			if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
 				ret = objc_msgSend_CGRect64_val (klass, selector);
 			else
+#endif
 				objc_msgSend_CGRect64_stret (out ret, klass, selector);
 		}
 		
