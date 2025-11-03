@@ -897,7 +897,7 @@ namespace Xwt.GtkBackend
 				return;
 			}
 
-		#if !NET
+		#if !NET && !XWT_GTK3
 			//need to fix the callback for the type and all the managed supertypes
 			var lookupGType = typeof (GLib.Object).GetMethod ("LookupGType", BindingFlags.Static | BindingFlags.NonPublic);
 			do {
@@ -910,7 +910,7 @@ namespace Xwt.GtkBackend
 		#endif
 		}
 		
-	#if !NET
+	#if !NET && !XWT_GTK3
 		static ForallDelegate CreateForallCallback (IntPtr gtype)
 		{
 			var dm = new DynamicMethod (
