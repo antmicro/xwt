@@ -399,7 +399,20 @@ namespace Xwt.WPFBackend
 			if ((int)key == 0)
 				return false;
 
-			result = new KeyEventArgs (key, (int)e.Key, KeyboardUtil.GetModifiers (), e.IsRepeat, e.Timestamp);
+			// Get the actual character from keyboard layout (important for AltGr)
+			var characters = KeyboardUtil.GetCharacterFromKey(e.Key);
+			var modifiers = KeyboardUtil.GetModifiers();
+			
+			// If we got a printable character with AltGr (Ctrl+Alt), remove those modifiers
+			// so the character is not treated as a control sequence
+			if (!string.IsNullOrEmpty(characters) && 
+			    (modifiers & ModifierKeys.Control) != 0 && 
+			    (modifiers & ModifierKeys.Alt) != 0)
+			{
+				modifiers &= ~(ModifierKeys.Control | ModifierKeys.Alt);
+			}
+			
+			result = new KeyEventArgs (key, (int)e.Key, modifiers, e.IsRepeat, e.Timestamp, characters);
 			return true;
 		}
 	}
