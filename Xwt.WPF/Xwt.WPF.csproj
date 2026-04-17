@@ -53,7 +53,7 @@ This package contains the WPF toolkit backend for Xwt based applications targeti
     <EmbeddedResource Include="icons\remove-16~dark~disabled.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Xwt\Xwt_NET.csproj" />
+    <ProjectReference Include="..\Xwt\Xwt.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.2" />

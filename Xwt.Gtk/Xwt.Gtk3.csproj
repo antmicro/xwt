@@ -166,7 +166,7 @@
     <Compile Include="Xwt.GtkBackend\UtilityWindowBackend.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Xwt\Xwt_NET.csproj"/>
+    <ProjectReference Include="..\Xwt\Xwt.csproj"/>
   </ItemGroup>
   <ItemGroup />
   <Target Name="BuildDllConfig" AfterTargets="AfterBuild">
