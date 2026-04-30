@@ -547,11 +547,7 @@ namespace Xwt.GtkBackend
 			{
 				int x, y;
 				WindowToBufferCoords (Gtk.TextWindowType.Text, (int)mousex, (int)mousey, out x, out y);
-			#if NET || XWT_GTK3
-					GetIterAtLocation (out Gtk.TextIter iter, x, y);
-			#else
-					var iter = GetIterAtLocation (x, y);
-			#endif
+				GetIterAtLocation (out Gtk.TextIter iter, x, y);
 				if (Buffer != null) {
 					foreach (var l in Buffer.Links) {
 						if (iter.HasTag (l.Key)) {
