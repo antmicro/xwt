@@ -60,9 +60,6 @@ This package contains the WPF toolkit backend for Xwt based applications targeti
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Remove="Xwt.WPFBackend.Utilities\MultiColumnTreeViewItem.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>
     <None Include="..\README.markdown" Pack="true" PackagePath=""/>
   </ItemGroup>
