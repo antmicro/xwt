@@ -91,7 +91,7 @@ namespace Xwt.GtkBackend
 			table.Add (new Gtk.TextTag ("p") {
 				SizePoints = Math.Max (LineSpacing, ParagraphSpacing),
 			});
-			
+
 			table.Add(new Gtk.TextTag ("textColor"));
 		}
 
@@ -148,8 +148,8 @@ namespace Xwt.GtkBackend
 			}
 		}
 
-		public bool ReadOnly { 
-			get { 
+		public bool ReadOnly {
+			get {
 				return !Widget.Editable;
 			}
 			set {
