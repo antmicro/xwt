@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
@@ -39,6 +40,19 @@ namespace Xwt.WPFBackend
 
 	public static class KeyboardUtil
 	{
+		// Windows API for getting the actual character from keyboard layout (works for ALL keyboard layouts)
+		[DllImport("user32.dll")]
+		private static extern int ToUnicode(
+			uint wVirtKey,
+			uint wScanCode,
+			byte[] lpKeyState,
+			[Out, MarshalAs(UnmanagedType.LPWStr, SizeConst = 64)] StringBuilder pwszBuff,
+			int cchBuff,
+			uint wFlags);
+
+		[DllImport("user32.dll")]
+		private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
 		public static ModifierKeys GetModifiers ()
 		{
 			var modifiers = ModifierKeys.None;
@@ -53,50 +67,63 @@ namespace Xwt.WPFBackend
 			return modifiers;
 		}
 
+		private static string GetCharFromKeyboardLayout(WpfKey key)
+		{
+			if (key == WpfKey.None)
+				return string.Empty;
+
+			try
+			{
+				var virtualKey = KeyInterop.VirtualKeyFromKey(key);
+				var keyboardState = new byte[256];
+				
+				// Get current keyboard state
+				if ((Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) != 0)
+					keyboardState[0x11] = 0x80; // VK_CONTROL
+				if ((Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Alt) != 0)
+					keyboardState[0x12] = 0x80; // VK_MENU (Alt)
+				if ((Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) != 0)
+					keyboardState[0x10] = 0x80; // VK_SHIFT
+				if (Keyboard.IsKeyToggled(WpfKey.CapsLock))
+					keyboardState[0x14] = 0x01; // VK_CAPITAL
+
+				var scanCode = MapVirtualKey((uint)virtualKey, 0);
+				var buffer = new StringBuilder(64);
+				
+				var result = ToUnicode((uint)virtualKey, scanCode, keyboardState, buffer, 64, 0);
+				
+				if (result > 0)
+					return buffer.ToString(0, result);
+			}
+			catch
+			{
+				// Silently fail
+			}
+			
+			return string.Empty;
+		}
+
+		public static string GetCharacterFromKey(WpfKey key)
+		{
+			return GetCharFromKeyboardLayout(key);
+		}
+
 		const int D_Pos = (int)Key.K0 - (int)WpfKey.D0;
 		const int U_Pos = (int)Key.A - (int)WpfKey.A;
 		const int L_Pos = (int)Key.a - (int)WpfKey.A;
 		const int N_Pos = (int)Key.NumPad0 - (int)WpfKey.NumPad0;
 		const int F_Pos = (int)Key.F1 - (int)WpfKey.F1;
 
-		// Missing key translations:
-		// * NumPad keys other than 1-9
-		// * SysReq, Undo, Redo, Menu, Find, Break, Equal
-		// * ShiftLock, MetaLeft, MetaRight
-		// * SuperLeft, SuperRight (likely not mappeable for Windows)
-		// * Less, Greater, Question, At
 		public static Key TranslateToXwtKey (WpfKey key)
 		{
-			// Letter keys
-			if (key >= WpfKey.A && key <= WpfKey.Z) {
-				bool upperCase = Keyboard.IsKeyToggled (WpfKey.CapsLock);
-				if ((Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) > 0)
-					upperCase = !upperCase;
-				return upperCase ? (Key)(key + U_Pos) : (Key)(key + L_Pos);
-			}
-
-			bool isShiftPressed = Keyboard.IsKeyDown(WpfKey.LeftShift) || Keyboard.IsKeyDown(WpfKey.RightShift);
-			switch (key)
-			{
-				case WpfKey.D0: return isShiftPressed ? Key.RightBracket : (Key)(key + D_Pos);  // 0)
-				case WpfKey.D1: return isShiftPressed ? Key.Exclamation : (Key)(key + D_Pos);   // 1!
-				case WpfKey.D2: return isShiftPressed ? Key.At : (Key)(key + D_Pos);            // 2@
-				case WpfKey.D3: return isShiftPressed ? Key.Hash : (Key)(key + D_Pos);          // 3#
-				case WpfKey.D4: return isShiftPressed ? Key.Dollar : (Key)(key + D_Pos);        // 4$
-				case WpfKey.D5: return isShiftPressed ? Key.Percent : (Key)(key + D_Pos);       // 5%
-				case WpfKey.D6: return isShiftPressed ? Key.Caret : (Key)(key + D_Pos);         // 6^
-				case WpfKey.D7: return isShiftPressed ? Key.Ampersand : (Key)(key + D_Pos);     // 7&
-				case WpfKey.D8: return isShiftPressed ? Key.Asterisk : (Key)(key + D_Pos);      // 8*
-				case WpfKey.D9: return isShiftPressed ? Key.LeftBracket : (Key)(key + D_Pos);   // 9(
-			}
-
-			// Numpad- keys
-			if (key >= WpfKey.NumPad0 && key <= WpfKey.NumPad9)
-				return (Key)(key + N_Pos);
-
+			// Special non-printable keys - direct mapping
 			// F- keys
 			if (key >= WpfKey.F1 && key <= WpfKey.F10)
 				return (Key)(key + F_Pos);
+			
+			// Numpad- keys
+			if (key >= WpfKey.NumPad0 && key <= WpfKey.NumPad9)
+				return (Key)(key + N_Pos);
 
 			switch (key) {
 				case WpfKey.Cancel: return Key.Cancel;
@@ -137,20 +164,68 @@ namespace Xwt.WPFBackend
 				case WpfKey.Subtract: return Key.NumPadSubtract;
 				case WpfKey.Divide: return Key.NumPadDivide;
 				case WpfKey.Decimal: return Key.NumPadDecimal;
-                
-				case WpfKey.OemComma: return isShiftPressed ? Key.Less : Key.Comma;         // ,<
-				case WpfKey.OemPeriod: return isShiftPressed ? Key.Greater : Key.Period;    // .>
-				case WpfKey.Oem1: return isShiftPressed ? Key.Colon : Key.Semicolon;        // ;:
-				case WpfKey.Oem2: return isShiftPressed ? Key.Question : Key.Slash;         // /?
-				case WpfKey.Oem3: return isShiftPressed ? Key.Tilde: Key.BackQuote;         // ]}
-				case WpfKey.Oem4: return isShiftPressed ? Key.OpenCurlyBracket : Key.OpenSquareBracket;     // [{
-				case WpfKey.Oem5: return isShiftPressed ? Key.Pipe : Key.Backslash;         // \|
-				case WpfKey.Oem6: return isShiftPressed ? Key.CloseCurlyBracket : Key.CloseSquareBracket;   // ]}
-				case WpfKey.Oem7: return isShiftPressed ? Key.Quote : Key.SingleQuote;      // '"
-				case WpfKey.OemPlus: return isShiftPressed ? Key.Plus : Key.Equal;          // =+
-				case WpfKey.OemMinus: return isShiftPressed ? Key.Underscore : Key.Minus;   // -_
 			}
-
+			
+			// For printable keys (letters, digits, symbols), use ToUnicode to get the actual character
+			// from the current keyboard layout
+			var charStr = GetCharFromKeyboardLayout(key);
+			if (!string.IsNullOrEmpty(charStr))
+			{
+				var ch = charStr[0];
+				// Map character to corresponding Key enum value
+				// Some characters like @ # etc. have specific Key enum values that don't match ASCII
+				switch (ch)
+				{
+					case '!': return Key.Exclamation;
+					case '@': return Key.At;
+					case '#': return Key.Hash;
+					case '$': return Key.Dollar;
+					case '%': return Key.Percent;
+					case '^': return Key.Caret;
+					case '&': return Key.Ampersand;
+					case '*': return Key.Asterisk;
+					case '(': return Key.LeftBracket;
+					case ')': return Key.RightBracket;
+					case '-': return Key.Minus;
+					case '_': return Key.Underscore;
+					case '=': return Key.Equal;
+					case '+': return Key.Plus;
+					case '[': return Key.OpenSquareBracket;
+					case '{': return Key.OpenCurlyBracket;
+					case ']': return Key.CloseSquareBracket;
+					case '}': return Key.CloseCurlyBracket;
+					case '\\': return Key.Backslash;
+					case '|': return Key.Pipe;
+					case ';': return Key.Semicolon;
+					case ':': return Key.Colon;
+					case '\'': return Key.SingleQuote;
+					case '"': return Key.Quote;
+					case ',': return Key.Comma;
+					case '<': return Key.Less;
+					case '.': return Key.Period;
+					case '>': return Key.Greater;
+					case '/': return Key.Slash;
+					case '?': return Key.Question;
+					case '`': return Key.BackQuote;
+					case '~': return Key.Tilde;
+				}
+				
+				// For other printable ASCII characters (letters, digits, space)
+				if (ch >= 32 && ch <= 126)
+					return (Key)ch;
+			}
+			
+			// Fallback for letters if ToUnicode failed
+			if (key >= WpfKey.A && key <= WpfKey.Z) {
+				bool upperCase = Keyboard.IsKeyToggled (WpfKey.CapsLock);
+				if ((Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) > 0)
+					upperCase = !upperCase;
+				return upperCase ? (Key)(key + U_Pos) : (Key)(key + L_Pos);
+			}
+			
+			// Fallback for digits if ToUnicode failed
+			if (key >= WpfKey.D0 && key <= WpfKey.D9)
+				return (Key)(key + D_Pos);
 
 			return (Key)0;
 		}
