@@ -68,7 +68,7 @@ This package contains the WPF toolkit backend for Xwt based applications targeti
     <ProjectReference Include="..\Xwt\Xwt.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.2" />
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="10.0.14" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>
